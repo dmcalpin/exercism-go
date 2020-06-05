@@ -3,10 +3,7 @@ package scrabble
 
 // Score takes a word and returns the
 // points according to Scrabble rules.
-func Score(word string) int {
-	// score starts at 0
-	totalScore := 0
-
+func Score(word string) (totalScore int) {
 	for _, letter := range word {
 		// for each letter in the word, add to
 		// the total score. Both upper and lower
