@@ -1,28 +1,45 @@
-// Package isogram has a IsIsogram function
+// Package isogram has an IsIsogram function
 package isogram
 
-import "unicode"
+import (
+	"unicode"
+	"unicode/utf8"
+)
 
 // IsIsogram detects if a word has no
 // duplicate letters. Space characters
 // and dashes are allowed
 func IsIsogram(word string) bool {
-	letterCache := make(map[rune]bool)
+	// letterCache is a map of runes used
+	// to keep track of which runes have
+	// ben found in word
+	letterCache := make(
+		map[rune]bool,
+		// creates a map of the proper size
+		utf8.RuneCountInString(word),
+	)
 
-	if word == "" {
-		return true
-	}
-
+	// loop over the runes in a word
 	for _, letter := range word {
-		if letter == '-' || letter == ' ' {
+		// ignore anything that isn't a letter
+		if !unicode.IsLetter(letter) {
 			continue
 		}
-		normalizedLetter := unicode.ToLower(letter)
-		if letterCache[normalizedLetter] {
+		// if the letter is uppercase convert
+		// it to lowercase for faster comparison
+		if unicode.IsUpper(letter) {
+			letter = unicode.ToLower(letter)
+		}
+		// if we found an existing letter in
+		// the cache then this is not an isogram
+		if letterCache[letter] {
 			return false
 		}
-		letterCache[normalizedLetter] = true
+		// add the current letter to the cache
+		letterCache[letter] = true
 	}
 
+	// if we've made it this far, word is
+	// an isogram
 	return true
 }

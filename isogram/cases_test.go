@@ -74,4 +74,14 @@ var testCases = []struct {
 		input:       "angola",
 		expected:    false,
 	},
+	{
+		description: "every letter of the alphabet with spaces and dashes",
+		input:       "----- aBc DeF gHi JkL mNo PqR sTu VwX yZ -----",
+		expected:    true,
+	},
+	{
+		description: "duplicate in the middle",
+		input:       "----- aBc DeF gHi JkL MMM PqR sTu VwX yZ -----",
+		expected:    false,
+	},
 }
