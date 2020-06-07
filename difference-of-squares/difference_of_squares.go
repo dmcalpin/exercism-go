@@ -6,10 +6,9 @@ package diffsquares
 
 // SquareOfSum adds numbers and then
 // squares them. This can be expressed as
-// the mathematical equation: [n(n/2 + 0.5)]^2
+// the mathematical equation: [n(n+1) / 2]^2
 func SquareOfSum(num int) (total int) {
-	sqrt := int(((float64(num) * 0.5) + 0.5) *
-		float64(num))
+	sqrt := (num + 1) * num / 2
 	return sqrt * sqrt
 }
 
