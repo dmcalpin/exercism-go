@@ -5,38 +5,24 @@
 package diffsquares
 
 // SquareOfSum adds numbers and then
-// squares them
+// squares them. This can be expressed as
+// the mathematical equation: [n(n/2 + 0.5)]^2
 func SquareOfSum(num int) (total int) {
-	// while num is positive
-	for num > 0 {
-		// add the num to the total
-		total += num
-		// and count down by 1
-		num--
-	}
-	// return the square of the total
-	return total * total
+	sqrt := int(((float64(num) * 0.5) + 0.5) *
+		float64(num))
+	return sqrt * sqrt
 }
 
-// SumOfSquares squares numbers and
-// then addes them
+// SumOfSquares squares the given number,
+// and all numbers before it, and then adds
+// them together. This can be expressed as the
+// mathematical equation: Σn2 = [n(n+1)(2n+1)]/6
 func SumOfSquares(num int) (total int) {
-	// while num is positive
-	for num > 0 {
-		// add the square of the num to
-		// the total
-		total += num * num
-		// and countdown by 1
-		num--
-	}
-	// return the total
-	return
+	return (num * (num + 1) * (2*num + 1)) / 6
 }
 
 // Difference subtracts the SumofSquares
 // from the SquareOfSum
 func Difference(num int) (diff int) {
-	// simply take the difference of the two
-	// functions
 	return SquareOfSum(num) - SumOfSquares(num)
 }
