@@ -2,39 +2,39 @@
 package luhn
 
 import (
+	"strings"
 	"unicode"
 )
 
 // Valid does a luhn check and returns
 // true if the number is valid.
-func Valid(num string) bool {
-
-	nums := []int{}
-	for _, n := range num {
+func Valid(numStr string) bool {
+	numStr = strings.ReplaceAll(numStr, " ", "")
+	total := 0
+	totalDigits := 0
+	for _, n := range numStr {
 		if !unicode.IsNumber(n) {
 			if unicode.IsSpace(n) {
 				continue
 			}
 			return false
 		}
-		nums = append(nums, int(n-'0'))
-	}
 
-	if len(nums) == 1 {
-		return false
-	}
+		num := int(n - '0')
 
-	for i := len(nums) - 2; i >= 0; i -= 2 {
-		n := nums[i] * 2
-		if n > 9 {
-			n -= 9
+		if len(numStr)%2 == totalDigits%2 {
+			num = num * 2
+			if num > 9 {
+				num -= 9
+			}
 		}
-		nums[i] = n
+		total += num
+		totalDigits++
+
 	}
 
-	total := 0
-	for _, n := range nums {
-		total += n
+	if totalDigits == 1 {
+		return false
 	}
 
 	if total%10 == 0 {
