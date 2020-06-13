@@ -30,26 +30,20 @@ type Clock struct {
 // {-121, -5810, "22:10"}, // negative hour and minutes both roll over continuously
 
 // New returns a new Clock struct
-func New(hour, minute int) Clock {
-	hour += minute / 60
+func New(hours, minutes int) Clock {
+	hours = (hours + (minutes / 60)) % 24
+	minutes = minutes % 60
 
-	hour = hour % 24
-	if hour < 0 {
-		hour += 24
+	if hours < 0 {
+		hours += 24
 	}
 
-	minute = minute % 60
-	if minute < 0 {
-		hour--
-		minute += 60
+	if minutes < 0 {
+		hours--
+		minutes += 60
 	}
 
-	c := Clock{
-		hour,
-		minute,
-	}
-
-	return c
+	return Clock{hours, minutes}
 }
 
 // String returns a human readable string
@@ -60,13 +54,24 @@ func (c Clock) String() string {
 
 // Add adds minutes
 func (c Clock) Add(minutes int) Clock {
+	hours := (c.Hour + ((c.Minute + minutes) / 60)) % 24
+	minutes = (c.Minute + minutes) % 60
 
-	return c
+	return Clock{hours, minutes}
 }
 
 // Subtract subtracts minutes
 func (c Clock) Subtract(minutes int) Clock {
-	c.Hour -= (c.Minute + minutes) / 60
-	c.Minute -= (c.Minute + minutes) % 60
-	return c
+	hours := (c.Hour - ((c.Minute + minutes) / 60)) % 24
+	minutes = (c.Minute - minutes) % 60
+
+	if hours < 0 {
+		hours += 24
+	}
+
+	if minutes < 0 {
+		hours--
+		minutes += 60
+	}
+	return Clock{hours, minutes}
 }
