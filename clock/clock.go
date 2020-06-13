@@ -62,16 +62,17 @@ func (c Clock) Add(minutes int) Clock {
 
 // Subtract subtracts minutes
 func (c Clock) Subtract(minutes int) Clock {
-	hours := (c.Hour - ((c.Minute + minutes) / 60)) % 24
-	minutes = (c.Minute - minutes) % 60
-
-	if hours < 0 {
-		hours += 24
-	}
+	hours := (c.Hour - (minutes / 60)) % 24
+	minutes = c.Minute - (minutes % 60)
 
 	if minutes < 0 {
 		hours--
 		minutes += 60
 	}
+
+	if hours < 0 {
+		hours += 24
+	}
+
 	return Clock{hours, minutes}
 }
