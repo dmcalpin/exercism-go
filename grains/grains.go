@@ -3,6 +3,7 @@ package grains
 // BadIndexError is returned when an invalid
 // board index is used
 type BadIndexError struct{}
+
 func (e BadIndexError) Error() string {
 	return "Index must be between 1 and 64"
 }
