@@ -39,7 +39,7 @@ func (r *Robot) Name() (string, error) {
 			return "", errors.New("No robot names left :-(")
 		}
 		// pick a random robot name from our slice
-		nameIndex := randomNumberBetween(0, len(possibleNames))
+		nameIndex := rand.Intn(len(possibleNames))
 		// set it
 		r.name = possibleNames[nameIndex]
 		// remove it from the slice
@@ -54,12 +54,6 @@ func (r *Robot) Reset() {
 	// set to "" so r.Name() knows
 	// it can set a new name
 	r.name = ""
-}
-
-// randomNumberBetween generates a random
-// number between the min and max values
-func randomNumberBetween(min, max int) int {
-	return rand.Intn(max-min) + min
 }
 
 // remove an element from a slice at a given
