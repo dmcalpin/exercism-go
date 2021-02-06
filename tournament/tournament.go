@@ -3,10 +3,10 @@
 package tournament
 
 import (
+	"bufio"
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"sort"
 	"strings"
 )
@@ -24,15 +24,15 @@ type TeamRecord struct {
 func Tally(r io.Reader, w io.Writer) error {
 	tourneyInfo := map[string]*TeamRecord{}
 
-	bytes, err := ioutil.ReadAll(r)
-	if err != nil {
-		return err
-	}
-	matches := strings.Split(strings.TrimSpace(string(bytes)), "\n")
-	for _, match := range matches {
+	scanner := bufio.NewScanner(r)
+	scanner.Split(bufio.ScanLines)
+
+	for scanner.Scan() {
+		match := scanner.Text()
 		if match == "" || match[0] == '#' {
 			continue
 		}
+
 		matchInfo := strings.Split(match, ";")
 		if len(matchInfo) != 3 {
 			return errors.New("Bad format, need: home team;visiting team;outcome")
@@ -73,6 +73,10 @@ func Tally(r io.Reader, w io.Writer) error {
 			return errors.New("invalid match result")
 		}
 	}
+	err := scanner.Err()
+	if err != nil {
+		return err
+	}
 
 	var tourneySlice = make([]*TeamRecord, len(tourneyInfo))
 	i := 0
@@ -80,6 +84,7 @@ func Tally(r io.Reader, w io.Writer) error {
 		tourneySlice[i] = result
 		i++
 	}
+
 	sort.SliceStable(tourneySlice, func(i, j int) bool {
 		if tourneySlice[j].Points != tourneySlice[i].Points {
 			return tourneySlice[j].Points < tourneySlice[i].Points
