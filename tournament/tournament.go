@@ -7,10 +7,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"sort"
 	"strings"
 )
 
+// TeamRecord keeps track of a teams match
+// results
 type TeamRecord struct {
 	Name          string
 	MatchesPlayed int
@@ -52,30 +55,11 @@ func Tally(r io.Reader, w io.Writer) error {
 			tourneyInfo[visitingTeamName] = visitingTeam
 		}
 
-		homeTeam.MatchesPlayed++
-		visitingTeam.MatchesPlayed++
-
-		switch matchResult {
-		case "win":
-			homeTeam.Wins++
-			homeTeam.Points += 3
-			visitingTeam.Losses++
-		case "loss":
-			homeTeam.Losses++
-			visitingTeam.Wins++
-			visitingTeam.Points += 3
-		case "draw":
-			homeTeam.Draws++
-			homeTeam.Points++
-			visitingTeam.Draws++
-			visitingTeam.Points++
-		default:
-			return errors.New("invalid match result")
+		err := addPoints(homeTeam, visitingTeam, matchResult)
+		if err != nil {
+			return err
 		}
-	}
-	err := scanner.Err()
-	if err != nil {
-		return err
+
 	}
 
 	var tourneySlice = make([]*TeamRecord, len(tourneyInfo))
@@ -85,6 +69,7 @@ func Tally(r io.Reader, w io.Writer) error {
 		i++
 	}
 
+	// Sort by games points, then by name
 	sort.SliceStable(tourneySlice, func(i, j int) bool {
 		if tourneySlice[j].Points != tourneySlice[i].Points {
 			return tourneySlice[j].Points < tourneySlice[i].Points
@@ -94,19 +79,50 @@ func Tally(r io.Reader, w io.Writer) error {
 		return false
 	})
 
-	w.Write([]byte(formatResults(tourneySlice)))
+	writeResults(w, tourneySlice)
 
 	return nil
 }
 
-func formatResults(records []*TeamRecord) string {
-	resultStr := fmt.Sprintf(
-		"%-30s | %2s | %2s | %2s | %2s | %2s\n",
-		"Team", "MP", "W", "D", "L", "P",
+func addPoints(
+	homeTeam *TeamRecord,
+	visitingTeam *TeamRecord,
+	matchResult string,
+) error {
+	homeTeam.MatchesPlayed++
+	visitingTeam.MatchesPlayed++
+
+	switch matchResult {
+	case "win":
+		homeTeam.Wins++
+		homeTeam.Points += 3
+		visitingTeam.Losses++
+	case "loss":
+		homeTeam.Losses++
+		visitingTeam.Wins++
+		visitingTeam.Points += 3
+	case "draw":
+		homeTeam.Draws++
+		homeTeam.Points++
+		visitingTeam.Draws++
+		visitingTeam.Points++
+	default:
+		return errors.New("invalid match result")
+	}
+	return nil
+}
+
+func writeResults(w io.Writer, records []*TeamRecord) {
+	result := bufio.NewWriter(w)
+	_, err := result.WriteString(
+		"Team                           | MP |  W |  D |  L |  P\n",
 	)
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	for _, record := range records {
-		resultStr += fmt.Sprintf(
+		_, err = result.WriteString(fmt.Sprintf(
 			"%-30s | %2d | %2d | %2d | %2d | %2d\n",
 			record.Name,
 			record.MatchesPlayed,
@@ -114,8 +130,10 @@ func formatResults(records []*TeamRecord) string {
 			record.Draws,
 			record.Losses,
 			record.Points,
-		)
+		))
+		if err != nil {
+			log.Fatal(err)
+		}
 	}
-
-	return resultStr
+	result.Flush()
 }
