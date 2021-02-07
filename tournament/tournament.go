@@ -113,16 +113,13 @@ func addPoints(
 }
 
 func writeResults(w io.Writer, records []*TeamRecord) {
-	result := bufio.NewWriter(w)
-	_, err := result.WriteString(
-		"Team                           | MP |  W |  D |  L |  P\n",
-	)
+	_, err := fmt.Fprint(w, "Team                           | MP |  W |  D |  L |  P\n")
 	if err != nil {
 		log.Fatal(err)
 	}
-
 	for _, record := range records {
-		_, err = result.WriteString(fmt.Sprintf(
+		_, err = fmt.Fprintf(
+			w,
 			"%-30s | %2d | %2d | %2d | %2d | %2d\n",
 			record.Name,
 			record.MatchesPlayed,
@@ -130,10 +127,9 @@ func writeResults(w io.Writer, records []*TeamRecord) {
 			record.Draws,
 			record.Losses,
 			record.Points,
-		))
+		)
 		if err != nil {
 			log.Fatal(err)
 		}
 	}
-	result.Flush()
 }
