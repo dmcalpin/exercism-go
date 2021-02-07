@@ -33,6 +33,13 @@ func findMatch(board []string, rowIndex int, cellIndex int) (nextRow int) {
 	currSymbol := string(currRow[cellIndex])
 
 	fmt.Printf("searching for: %s, row: %d, cell: %d\n", currSymbol, rowIndex, cellIndex)
+
+	// if we're at the end we return
+	// 999 as an arbitrary success value
+	if cellIndex == len(currRow)-1 {
+		// we made it to the end!
+		return 999
+	}
 	// if row doesn't start with a symbol
 	// can't have a win
 	if currSymbol == "." {
@@ -40,51 +47,35 @@ func findMatch(board []string, rowIndex int, cellIndex int) (nextRow int) {
 	}
 
 	// check the next cell of this row
-	if checkRow(currRow, cellIndex, currSymbol) {
-		match := findMatch(board, rowIndex, cellIndex+1)
-		if match != -1 {
-			return match
-		}
+	if match := checkRow(board, rowIndex, cellIndex+1, currSymbol); match != -1 {
+		return match
 	}
 
 	// check the next cell of the row above
 	previousRowIndex := rowIndex - 1
 	if previousRowIndex >= 0 {
-		if checkRow(board[previousRowIndex], cellIndex, currSymbol) {
-			match := findMatch(board, previousRowIndex, cellIndex+1)
-			if match != -1 {
-				return match
-			}
+		if match := checkRow(board, previousRowIndex, cellIndex+1, currSymbol); match != -1 {
+			return match
 		}
 	}
 
 	// check the next cell of the row below
 	nextRowIndex := rowIndex + 1
 	if nextRowIndex < len(board) {
-		if checkRow(board[nextRowIndex], cellIndex, currSymbol) {
-			match := findMatch(board, nextRowIndex, cellIndex)
-			if match != -1 {
-				return match
-			}
+		// note we do not increment cellIndex
+		// because of the diagonal shape of the board
+		if match := checkRow(board, nextRowIndex, cellIndex, currSymbol); match != -1 {
+			return match
 		}
 	}
 
-	if cellIndex == len(currRow)-1 {
-		// we made it to the end!
-		return 999
-	}
 	return -1
 }
 
-func checkRow(row string, index int, symbol string) bool {
-	if index == len(row) {
-		return true
-	} else if index < len(row)-1 {
-		nextSymbol := string(row[index+1])
-		// if match, move to that row
-		if symbol == nextSymbol {
-			return true
-		}
+func checkRow(board []string, rowIndex int, cellIndex int, symbol string) int {
+	// if match, move to that row
+	if symbol == string(board[rowIndex][cellIndex]) {
+		return findMatch(board, rowIndex, cellIndex)
 	}
-	return false
+	return -1
 }
