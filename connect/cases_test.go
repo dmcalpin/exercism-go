@@ -80,16 +80,16 @@ var testCases = []struct {
 			"    . O X ."},
 		expected: "O",
 	},
-	// {
-	// 	description: "X wins using a convoluted path",
-	// 	board: []string{
-	// 		". X X . .",
-	// 		" X . X . X",
-	// 		"  . X . X .",
-	// 		"   . X X . .",
-	// 		"    O O O O O"},
-	// 	expected: "X",
-	// },
+	{
+		description: "X wins using a convoluted path",
+		board: []string{
+			". X X . .",
+			" X . X . X",
+			"  . X . X .",
+			"   . X X . .",
+			"    O O O O O"},
+		expected: "X",
+	},
 	// {
 	// 	description: "X wins using a spiral path",
 	// 	board: []string{

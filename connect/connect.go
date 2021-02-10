@@ -1,6 +1,8 @@
 package connect
 
-import "fmt"
+import (
+	"fmt"
+)
 
 // ResultOf calculates the result of a
 // game of connect
@@ -45,6 +47,8 @@ func findLRMatch(board []string, rowIndex int, cellIndex int, expectedSymbol str
 		return 999
 	}
 
+	markLookedAt(board, rowIndex, cellIndex)
+
 	fmt.Printf("searching for: %s, row: %d, cell: %d\n", currSymbol, rowIndex, cellIndex)
 
 	// check the next cell of this row
@@ -66,12 +70,19 @@ func findLRMatch(board []string, rowIndex int, cellIndex int, expectedSymbol str
 		return match
 	}
 
+	// check the previous cell of the row below
+	// note we do not increment cellIndex
+	// because of the diagonal shape of the board
+	if match := checkRow(board, nextRowIndex, cellIndex-1, currSymbol, expectedSymbol); match != -1 {
+		return match
+	}
+
 	return -1
 }
 
 func checkRow(board []string, rowIndex int, cellIndex int, symbol string, expectedSymbol string) int {
 	// make sure we're on the board
-	if rowIndex >= 0 && rowIndex < len(board) {
+	if rowIndex >= 0 && rowIndex < len(board) && cellIndex >= 0 && cellIndex < len(board[0]) {
 		// if match, move to that row
 		if symbol == string(board[rowIndex][cellIndex]) {
 			return findLRMatch(board, rowIndex, cellIndex, expectedSymbol)
@@ -98,6 +109,8 @@ func findVertMatch(board []string, rowIndex int, cellIndex int, expectedSymbol s
 		return 999
 	}
 
+	markLookedAt(board, rowIndex, cellIndex)
+
 	fmt.Printf("searching for: %s, row: %d, cell: %d\n", currSymbol, rowIndex, cellIndex)
 
 	// check the row of this col
@@ -122,7 +135,7 @@ func findVertMatch(board []string, rowIndex int, cellIndex int, expectedSymbol s
 
 func checkCol(board []string, rowIndex int, cellIndex int, symbol string, expectedSymbol string) int {
 	// make sure we're on the board
-	if cellIndex >= 0 && cellIndex < len(board[0]) {
+	if rowIndex >= 0 && rowIndex < len(board) && cellIndex >= 0 && cellIndex < len(board[0]) {
 		// if match, move to that row
 		if rowIndex < len(board) {
 			if symbol == string(board[rowIndex][cellIndex]) {
@@ -131,4 +144,10 @@ func checkCol(board []string, rowIndex int, cellIndex int, symbol string, expect
 		}
 	}
 	return -1
+}
+
+func markLookedAt(board []string, rowIndex, cellIndex int) {
+	row := []byte(board[rowIndex])
+	row[cellIndex] = '.'
+	board[rowIndex] = string(row)
 }
