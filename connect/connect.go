@@ -6,153 +6,128 @@ import "fmt"
 // game of connect
 func ResultOf(board []string) (string, error) {
 	// Check the left-to-right win
-	for i := 0; i < len(board); i++ {
-		cellIndex := 0
-		rowIndex := i
-		// loop over any susequent rows
-		// where a match is found
-		fmt.Printf("Starting row: %d\n", rowIndex)
-		nextRow := findLRMatch(board, rowIndex, cellIndex)
+	numRows := len(board)
+	for i := 0; i < numRows; i++ {
+		fmt.Printf("Starting row: %d\n", i)
+		nextRow := findLRMatch(board, i, 0, "X")
 		if nextRow != -1 {
-			return string(board[rowIndex][cellIndex]), nil
+			return "X", nil
 		}
 	}
 
 	// Check the top-to-bottom win
-	for i := 0; i < len(board[0]); i++ {
-		cellIndex := i
-		rowIndex := 0
-		// loop over any susequent rows
-		// where a match is found
-		fmt.Printf("Starting cell: %d\n", cellIndex)
-		nextCol := findVertMatch(board, rowIndex, cellIndex)
+	cellsPerRow := len(board[0])
+	for i := 0; i < cellsPerRow; i++ {
+		fmt.Printf("Starting cell: %d\n", i)
+		nextCol := findVertMatch(board, 0, i, "O")
 		if nextCol != -1 {
-			return string(board[rowIndex][cellIndex]), nil
+			return "O", nil
 		}
 	}
 
-	if board[0] == "O" {
-		return "O", nil
-	}
-	if board[0] == "X" {
-		return "X", nil
-	}
 	return "", nil
 }
 
-func findLRMatch(board []string, rowIndex int, cellIndex int) (nextRow int) {
-	// if we're at the end we return
-	// 999 as an arbitrary success value
-	if cellIndex >= len(board[rowIndex])-1 {
-		// we made it to the end!
-		return 997
-	}
-
+func findLRMatch(board []string, rowIndex int, cellIndex int, expectedSymbol string) (nextRow int) {
 	// get the current symbol
 	currSymbol := string(board[rowIndex][cellIndex])
 
-	// if row doesn't start with a symbol
-	// can't have a win
-	if currSymbol != "X" {
+	// If not expected symbol, fail
+	if currSymbol != expectedSymbol {
 		return -1
+	}
+
+	// if we're at the end we return
+	// 997 as an arbitrary success value
+	cellsInRow := len(board[rowIndex])
+	if cellIndex+2 > cellsInRow {
+		// we made it to the end!
+		return 999
 	}
 
 	fmt.Printf("searching for: %s, row: %d, cell: %d\n", currSymbol, rowIndex, cellIndex)
 
 	// check the next cell of this row
-	if match := checkRow(board, rowIndex, cellIndex+1, currSymbol); match != -1 {
+	if match := checkRow(board, rowIndex, cellIndex+1, currSymbol, expectedSymbol); match != -1 {
 		return match
 	}
 
 	// check the next cell of the row above
 	previousRowIndex := rowIndex - 1
-	if previousRowIndex >= 0 {
-		if match := checkRow(board, previousRowIndex, cellIndex+1, currSymbol); match != -1 {
-			return match
-		}
+	if match := checkRow(board, previousRowIndex, cellIndex+1, currSymbol, expectedSymbol); match != -1 {
+		return match
 	}
 
 	// check the next cell of the row below
 	nextRowIndex := rowIndex + 1
-	if nextRowIndex < len(board) {
-		// note we do not increment cellIndex
-		// because of the diagonal shape of the board
-		if match := checkRow(board, nextRowIndex, cellIndex, currSymbol); match != -1 {
-			return match
+	// note we do not increment cellIndex
+	// because of the diagonal shape of the board
+	if match := checkRow(board, nextRowIndex, cellIndex, currSymbol, expectedSymbol); match != -1 {
+		return match
+	}
+
+	return -1
+}
+
+func checkRow(board []string, rowIndex int, cellIndex int, symbol string, expectedSymbol string) int {
+	// make sure we're on the board
+	if rowIndex >= 0 && rowIndex < len(board) {
+		// if match, move to that row
+		if symbol == string(board[rowIndex][cellIndex]) {
+			return findLRMatch(board, rowIndex, cellIndex, expectedSymbol)
 		}
 	}
-
 	return -1
 }
 
-func checkRow(board []string, rowIndex int, cellIndex int, symbol string) int {
-	// if match, move to that row
-	if symbol == string(board[rowIndex][cellIndex]) {
-		return findLRMatch(board, rowIndex, cellIndex)
-	}
-	return -1
-}
-
-func findVertMatch(board []string, rowIndex int, cellIndex int) (nextRow int) {
-	// if we're at the end we return
-	// 999 as an arbitrary success value
-	if rowIndex == len(board) {
-		// we made it to the end!
-		return 999
-	}
-
-	if cellIndex == len(board[0]) {
-		// we made it to the end!
-		return 998
-	}
-
+func findVertMatch(board []string, rowIndex int, cellIndex int, expectedSymbol string) (nextRow int) {
 	// get the current symbol
 	currSymbol := string(board[rowIndex][cellIndex])
 
 	// if row doesn't start with a symbol
 	// can't have a win
-	if currSymbol != "O" {
+	if currSymbol != expectedSymbol {
 		return -1
+	}
+
+	// if we're at the end we return
+	// 999 as an arbitrary success value
+	rowsInBoard := len(board)
+	if rowIndex+2 > rowsInBoard {
+		// we made it to the end!
+		return 999
 	}
 
 	fmt.Printf("searching for: %s, row: %d, cell: %d\n", currSymbol, rowIndex, cellIndex)
 
 	// check the row of this col
-	if match := checkCol(board, rowIndex+1, cellIndex, currSymbol); match != -1 {
+	if match := checkCol(board, rowIndex+1, cellIndex, currSymbol, expectedSymbol); match != -1 {
 		return match
 	}
 
 	// check the next row of the col to the left
 	previousCellIndex := cellIndex - 1
-	if previousCellIndex >= 0 {
-		if match := checkCol(board, rowIndex+1, previousCellIndex, currSymbol); match != -1 {
-			return match
-		}
+	if match := checkCol(board, rowIndex+1, previousCellIndex, currSymbol, expectedSymbol); match != -1 {
+		return match
 	}
 
 	// check the same row, cell to the right
 	nextCellIndex := cellIndex + 1
-	if nextCellIndex < len(board[0]) {
-		// note we do not increment cellIndex
-		// because of the diagonal shape of the board
-		if match := checkCol(board, rowIndex, nextCellIndex, currSymbol); match != -1 {
-			return match
-		}
-	}
-
-	// we're at the end!
-	if rowIndex == len(board)-1 {
-		return 997
+	if match := checkCol(board, rowIndex, nextCellIndex, currSymbol, expectedSymbol); match != -1 {
+		return match
 	}
 
 	return -1
 }
 
-func checkCol(board []string, rowIndex int, cellIndex int, symbol string) int {
-	// if match, move to that row
-	if rowIndex < len(board) {
-		if symbol == string(board[rowIndex][cellIndex]) {
-			return findVertMatch(board, rowIndex, cellIndex)
+func checkCol(board []string, rowIndex int, cellIndex int, symbol string, expectedSymbol string) int {
+	// make sure we're on the board
+	if cellIndex >= 0 && cellIndex < len(board[0]) {
+		// if match, move to that row
+		if rowIndex < len(board) {
+			if symbol == string(board[rowIndex][cellIndex]) {
+				return findVertMatch(board, rowIndex, cellIndex, expectedSymbol)
+			}
 		}
 	}
 	return -1
