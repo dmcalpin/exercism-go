@@ -90,18 +90,18 @@ var testCases = []struct {
 			"    O O O O O"},
 		expected: "X",
 	},
-	// {
-	// 	description: "X wins using a spiral path",
-	// 	board: []string{
-	// 		"O X X X X X X X X",
-	// 		" O X O O O O O O O",
-	// 		"  O X O X X X X X O",
-	// 		"   O X O X O O O X O",
-	// 		"    O X O X X X O X O",
-	// 		"     O X O O O X O X O",
-	// 		"      O X X X X X O X O",
-	// 		"       O O O O O O O X O",
-	// 		"        X X X X X X X X O"},
-	// 	expected: "X",
-	// },
+	{
+		description: "X wins using a spiral path",
+		board: []string{
+			"O X X X X X X X X",
+			" O X O O O O O O O",
+			"  O X O X X X X X O",
+			"   O X O X O O O X O",
+			"    O X O X X X O X O",
+			"     O X O O O X O X O",
+			"      O X X X X X O X O",
+			"       O O O O O O O X O",
+			"        X X X X X X X X O"},
+		expected: "X",
+	},
 }

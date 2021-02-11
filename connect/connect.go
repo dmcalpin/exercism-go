@@ -4,6 +4,11 @@ import (
 	"fmt"
 )
 
+type coordinates struct {
+	X int
+	Y int
+}
+
 // ResultOf calculates the result of a
 // game of connect
 func ResultOf(board []string) (string, error) {
@@ -40,7 +45,7 @@ func findLRMatch(board []string, rowIndex int, cellIndex int, expectedSymbol str
 	}
 
 	// if we're at the end we return
-	// 997 as an arbitrary success value
+	// 999 as an arbitrary success value
 	cellsInRow := len(board[rowIndex])
 	if cellIndex+2 > cellsInRow {
 		// we made it to the end!
@@ -49,32 +54,19 @@ func findLRMatch(board []string, rowIndex int, cellIndex int, expectedSymbol str
 
 	markLookedAt(board, rowIndex, cellIndex)
 
-	fmt.Printf("searching for: %s, row: %d, cell: %d\n", currSymbol, rowIndex, cellIndex)
-
-	// check the next cell of this row
-	if match := checkRow(board, rowIndex, cellIndex+1, currSymbol, expectedSymbol); match != -1 {
-		return match
+	surroundingCells := []coordinates{
+		{Y: rowIndex - 1, X: cellIndex},     // cell above right
+		{Y: rowIndex - 1, X: cellIndex + 1}, // cell above left
+		{Y: rowIndex, X: cellIndex + 1},     // cell to the right
+		{Y: rowIndex, X: cellIndex - 1},     // cell to the left
+		{Y: rowIndex + 1, X: cellIndex},     // cell below left
+		{Y: rowIndex + 1, X: cellIndex - 1}, // cell below right
 	}
 
-	// check the next cell of the row above
-	previousRowIndex := rowIndex - 1
-	if match := checkRow(board, previousRowIndex, cellIndex+1, currSymbol, expectedSymbol); match != -1 {
-		return match
-	}
-
-	// check the next cell of the row below
-	nextRowIndex := rowIndex + 1
-	// note we do not increment cellIndex
-	// because of the diagonal shape of the board
-	if match := checkRow(board, nextRowIndex, cellIndex, currSymbol, expectedSymbol); match != -1 {
-		return match
-	}
-
-	// check the previous cell of the row below
-	// note we do not increment cellIndex
-	// because of the diagonal shape of the board
-	if match := checkRow(board, nextRowIndex, cellIndex-1, currSymbol, expectedSymbol); match != -1 {
-		return match
+	for _, coord := range surroundingCells {
+		if match := checkRow(board, coord.Y, coord.X, currSymbol, expectedSymbol); match != -1 {
+			return match
+		}
 	}
 
 	return -1
@@ -111,23 +103,19 @@ func findVertMatch(board []string, rowIndex int, cellIndex int, expectedSymbol s
 
 	markLookedAt(board, rowIndex, cellIndex)
 
-	fmt.Printf("searching for: %s, row: %d, cell: %d\n", currSymbol, rowIndex, cellIndex)
-
-	// check the row of this col
-	if match := checkCol(board, rowIndex+1, cellIndex, currSymbol, expectedSymbol); match != -1 {
-		return match
+	surroundingCells := []coordinates{
+		{Y: rowIndex - 1, X: cellIndex},     // cell above right
+		{Y: rowIndex - 1, X: cellIndex + 1}, // cell above left
+		{Y: rowIndex, X: cellIndex + 1},     // cell to the right
+		{Y: rowIndex, X: cellIndex - 1},     // cell to the left
+		{Y: rowIndex + 1, X: cellIndex},     // cell below left
+		{Y: rowIndex + 1, X: cellIndex - 1}, // cell below right
 	}
 
-	// check the next row of the col to the left
-	previousCellIndex := cellIndex - 1
-	if match := checkCol(board, rowIndex+1, previousCellIndex, currSymbol, expectedSymbol); match != -1 {
-		return match
-	}
-
-	// check the same row, cell to the right
-	nextCellIndex := cellIndex + 1
-	if match := checkCol(board, rowIndex, nextCellIndex, currSymbol, expectedSymbol); match != -1 {
-		return match
+	for _, coord := range surroundingCells {
+		if match := checkCol(board, coord.Y, coord.X, currSymbol, expectedSymbol); match != -1 {
+			return match
+		}
 	}
 
 	return -1
