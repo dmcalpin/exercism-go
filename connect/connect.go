@@ -1,141 +1,102 @@
 package connect
 
-import (
-	"fmt"
-)
-
 type coordinates struct {
-	X int
 	Y int
+	X int
 }
 
+// players 1 and 2
+const (
+	P1 = "X"
+	P2 = "O"
+)
+
 // ResultOf calculates the result of a
-// game of connect
+// game of connect. Two loops are needed
+// incase the board is not square (rows == cols)
 func ResultOf(board []string) (string, error) {
 	// Check the left-to-right win
 	numRows := len(board)
 	for i := 0; i < numRows; i++ {
-		fmt.Printf("Starting row: %d\n", i)
-		nextRow := findLRMatch(board, i, 0, "X")
-		if nextRow != -1 {
-			return "X", nil
+		if findMatch(board, &coordinates{i, 0}, P1) {
+			return P1, nil
 		}
 	}
 
 	// Check the top-to-bottom win
 	cellsPerRow := len(board[0])
 	for i := 0; i < cellsPerRow; i++ {
-		fmt.Printf("Starting cell: %d\n", i)
-		nextCol := findVertMatch(board, 0, i, "O")
-		if nextCol != -1 {
-			return "O", nil
+		if findMatch(board, &coordinates{0, i}, P2) {
+			return P2, nil
 		}
 	}
 
 	return "", nil
 }
 
-func findLRMatch(board []string, rowIndex int, cellIndex int, expectedSymbol string) (nextRow int) {
-	// get the current symbol
-	currSymbol := string(board[rowIndex][cellIndex])
-
-	// If not expected symbol, fail
-	if currSymbol != expectedSymbol {
-		return -1
+// findMatch takes a coordinate and identifies any surrounding
+// matches, it then follows the matches it finds, and marks
+// any cells that have been checked. If it makes it's way across
+// the board, 999 is returned
+func findMatch(
+	board []string,
+	currCoord *coordinates,
+	expectedSymbol string,
+) (winner bool) {
+	// if symbol is not a match, this isn't a win
+	if !coordMatchSymbol(board, currCoord, expectedSymbol) {
+		return false
 	}
 
-	// if we're at the end we return
-	// 999 as an arbitrary success value
-	cellsInRow := len(board[rowIndex])
-	if cellIndex+2 > cellsInRow {
-		// we made it to the end!
-		return 999
+	// Check if at end of row
+	// or column, return 999 for win
+	switch expectedSymbol {
+	case P2:
+		rowsInBoard := len(board)
+		if currCoord.Y+2 > rowsInBoard {
+			return true
+		}
+	case P1:
+		cellsInRow := len(board[currCoord.Y])
+		if currCoord.X+2 > cellsInRow {
+			return true
+		}
 	}
 
-	markLookedAt(board, rowIndex, cellIndex)
+	markLookedAt(board, currCoord)
 
-	surroundingCells := []coordinates{
-		{Y: rowIndex - 1, X: cellIndex},     // cell above right
-		{Y: rowIndex - 1, X: cellIndex + 1}, // cell above left
-		{Y: rowIndex, X: cellIndex + 1},     // cell to the right
-		{Y: rowIndex, X: cellIndex - 1},     // cell to the left
-		{Y: rowIndex + 1, X: cellIndex},     // cell below left
-		{Y: rowIndex + 1, X: cellIndex - 1}, // cell below right
+	// coordinates of all surrounding cells
+	// on the board
+	surroundingCells := []*coordinates{
+		{Y: currCoord.Y - 1, X: currCoord.X},     // cell above right
+		{Y: currCoord.Y - 1, X: currCoord.X + 1}, // cell above left
+		{Y: currCoord.Y, X: currCoord.X + 1},     // cell to the right
+		{Y: currCoord.Y, X: currCoord.X - 1},     // cell to the left
+		{Y: currCoord.Y + 1, X: currCoord.X},     // cell below left
+		{Y: currCoord.Y + 1, X: currCoord.X - 1}, // cell below right
 	}
 
 	for _, coord := range surroundingCells {
-		if match := checkRow(board, coord.Y, coord.X, currSymbol, expectedSymbol); match != -1 {
-			return match
+		match := findMatch(board, coord, expectedSymbol)
+		if match {
+			return true
 		}
 	}
 
-	return -1
+	return false
 }
 
-func checkRow(board []string, rowIndex int, cellIndex int, symbol string, expectedSymbol string) int {
-	// make sure we're on the board
-	if rowIndex >= 0 && rowIndex < len(board) && cellIndex >= 0 && cellIndex < len(board[0]) {
-		// if match, move to that row
-		if symbol == string(board[rowIndex][cellIndex]) {
-			return findLRMatch(board, rowIndex, cellIndex, expectedSymbol)
-		}
-	}
-	return -1
+// make sure we're on the board, and the symbol at the given
+// coordinates matches the expected symbol
+func coordMatchSymbol(board []string, coord *coordinates, symbol string) bool {
+	return coord.Y >= 0 && coord.Y < len(board) && coord.X >= 0 && coord.X < len(board[0]) && string(board[coord.Y][coord.X]) == symbol
 }
 
-func findVertMatch(board []string, rowIndex int, cellIndex int, expectedSymbol string) (nextRow int) {
-	// get the current symbol
-	currSymbol := string(board[rowIndex][cellIndex])
-
-	// if row doesn't start with a symbol
-	// can't have a win
-	if currSymbol != expectedSymbol {
-		return -1
-	}
-
-	// if we're at the end we return
-	// 999 as an arbitrary success value
-	rowsInBoard := len(board)
-	if rowIndex+2 > rowsInBoard {
-		// we made it to the end!
-		return 999
-	}
-
-	markLookedAt(board, rowIndex, cellIndex)
-
-	surroundingCells := []coordinates{
-		{Y: rowIndex - 1, X: cellIndex},     // cell above right
-		{Y: rowIndex - 1, X: cellIndex + 1}, // cell above left
-		{Y: rowIndex, X: cellIndex + 1},     // cell to the right
-		{Y: rowIndex, X: cellIndex - 1},     // cell to the left
-		{Y: rowIndex + 1, X: cellIndex},     // cell below left
-		{Y: rowIndex + 1, X: cellIndex - 1}, // cell below right
-	}
-
-	for _, coord := range surroundingCells {
-		if match := checkCol(board, coord.Y, coord.X, currSymbol, expectedSymbol); match != -1 {
-			return match
-		}
-	}
-
-	return -1
-}
-
-func checkCol(board []string, rowIndex int, cellIndex int, symbol string, expectedSymbol string) int {
-	// make sure we're on the board
-	if rowIndex >= 0 && rowIndex < len(board) && cellIndex >= 0 && cellIndex < len(board[0]) {
-		// if match, move to that row
-		if rowIndex < len(board) {
-			if symbol == string(board[rowIndex][cellIndex]) {
-				return findVertMatch(board, rowIndex, cellIndex, expectedSymbol)
-			}
-		}
-	}
-	return -1
-}
-
-func markLookedAt(board []string, rowIndex, cellIndex int) {
-	row := []byte(board[rowIndex])
-	row[cellIndex] = '.'
-	board[rowIndex] = string(row)
+// Set the cell to '.' so we don't
+// re-check it, thus preventing
+// an infinite loop
+func markLookedAt(board []string, coord *coordinates) {
+	row := []byte(board[coord.Y])
+	row[coord.X] = '.'
+	board[coord.Y] = string(row)
 }
