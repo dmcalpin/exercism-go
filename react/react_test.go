@@ -153,35 +153,35 @@ func TestOnlyCallOnChanges(t *testing.T) {
 	}
 }
 
-// // Callbacks can be added and removed.
-// func TestCallbackAddRemove(t *testing.T) {
-// 	r := New()
-// 	i := r.CreateInput(1)
-// 	c := r.CreateCompute1(i, func(v int) int { return v + 1 })
-// 	var observed1 []int
-// 	cb1 := c.AddCallback(func(v int) {
-// 		observed1 = append(observed1, v)
-// 	})
-// 	var observed2 []int
-// 	c.AddCallback(func(v int) {
-// 		observed2 = append(observed2, v)
-// 	})
-// 	i.SetValue(2)
-// 	if len(observed1) != 1 || observed1[0] != 3 {
-// 		t.Fatalf("observed1 not properly called")
-// 	}
-// 	if len(observed2) != 1 || observed2[0] != 3 {
-// 		t.Fatalf("observed2 not properly called")
-// 	}
-// 	cb1.Cancel()
-// 	i.SetValue(3)
-// 	if len(observed1) != 1 {
-// 		t.Fatalf("observed1 called after removal")
-// 	}
-// 	if len(observed2) != 2 || observed2[1] != 4 {
-// 		t.Fatalf("observed2 not properly called after first callback removal")
-// 	}
-// }
+// Callbacks can be added and removed.
+func TestCallbackAddRemove(t *testing.T) {
+	r := New()
+	i := r.CreateInput(1)
+	c := r.CreateCompute1(i, func(v int) int { return v + 1 })
+	var observed1 []int
+	cb1 := c.AddCallback(func(v int) {
+		observed1 = append(observed1, v)
+	})
+	var observed2 []int
+	c.AddCallback(func(v int) {
+		observed2 = append(observed2, v)
+	})
+	i.SetValue(2)
+	if len(observed1) != 1 || observed1[0] != 3 {
+		t.Fatalf("observed1 not properly called")
+	}
+	if len(observed2) != 1 || observed2[0] != 3 {
+		t.Fatalf("observed2 not properly called")
+	}
+	cb1.Cancel()
+	i.SetValue(3)
+	if len(observed1) != 1 {
+		t.Fatalf("observed1 called after removal")
+	}
+	if len(observed2) != 2 || observed2[1] != 4 {
+		t.Fatalf("observed2 not properly called after first callback removal")
+	}
+}
 
 // func TestMultipleCallbackRemoval(t *testing.T) {
 // 	r := New()

@@ -36,7 +36,7 @@ func (m *MyReactor) CreateCompute1(cell Cell, compute func(int) int) ComputeCell
 			// call callbacks associated with inputs
 			for _, sub := range pubsub[comp] {
 				for _, cb := range sub.callbacks {
-					cb(comp.val)
+					safeCall(cb, comp.val)
 				}
 			}
 
@@ -45,7 +45,7 @@ func (m *MyReactor) CreateCompute1(cell Cell, compute func(int) int) ComputeCell
 				if i == 0 {
 					continue
 				}
-				cb(comp.val)
+				safeCall(cb, comp.val)
 			}
 		}
 	}
@@ -71,7 +71,7 @@ func (m *MyReactor) CreateCompute2(cell1 Cell, cell2 Cell, compute func(val1 int
 
 			for _, sub := range pubsub[comp] {
 				for _, cb := range sub.callbacks {
-					cb(comp.val)
+					safeCall(cb, comp.val)
 				}
 			}
 		}
@@ -118,7 +118,7 @@ func (m *MyInputCell) SetValue(val int) {
 			if i != 0 {
 				continue
 			}
-			cb(m.Value())
+			safeCall(cb, m.Value())
 		}
 	}
 }
@@ -126,27 +126,27 @@ func (m *MyInputCell) SetValue(val int) {
 // MyComputeCell implements ComputeCell
 type MyComputeCell struct {
 	MyCell
-	callbacks []func(int)
+	callbacks []*func(int)
 }
 
 // AddCallback adds a callback which will be called when the value changes.
 // It returns a Canceler which can be used to remove the callback.
 func (m *MyComputeCell) AddCallback(cb func(int)) Canceler {
-	m.callbacks = append(m.callbacks, cb)
+	m.callbacks = append(m.callbacks, &cb)
 
 	return &MyCanceler{
-		cb,
+		&cb,
 	}
 }
 
 // MyCanceler implements Canceler
 type MyCanceler struct {
-	callback func(int)
+	callback *func(int)
 }
 
 // Cancel removes the callback.
 func (m *MyCanceler) Cancel() {
-	m.callback = nil
+	*m.callback = nil
 }
 
 // New returns a new Reactor
@@ -157,4 +157,11 @@ func New() Reactor {
 /// helper funcs ////
 func associateInputCompute(pub Cell, subscriber *MyComputeCell) {
 	pubsub[pub] = append(pubsub[pub], subscriber)
+}
+
+func safeCall(funcPtr *func(int), val int) {
+	doIt := *funcPtr
+	if doIt != nil {
+		doIt(val)
+	}
 }
