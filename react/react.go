@@ -1,10 +1,5 @@
 package react
 
-import (
-	"reflect"
-	"runtime"
-)
-
 // MyReactor implements Reactor
 type MyReactor struct{}
 
@@ -24,22 +19,28 @@ func (m *MyReactor) CreateInput(val int) InputCell {
 func (m *MyReactor) CreateCompute1(cell Cell, compute func(int) int) ComputeCell {
 	computeCell := &MyComputeCell{}
 
+	// This closure is used so that the callback can
+	// maintain a reference to the compute cell and the
+	// input cell
 	wrapper := func(comp *MyComputeCell, in Cell) func(int) {
 		return func(val int) {
 			newVal := compute(val)
 
+			// only compute cells if the value has changed
 			if comp.val == newVal {
 				return
 			}
 
 			comp.val = newVal
 
+			// call callbacks associated with inputs
 			for _, sub := range pubsub[comp] {
 				for _, cb := range sub.callbacks {
 					cb(comp.val)
 				}
 			}
 
+			// call callbacks associated with computes
 			for i, cb := range comp.callbacks {
 				if i == 0 {
 					continue
@@ -52,7 +53,6 @@ func (m *MyReactor) CreateCompute1(cell Cell, compute func(int) int) ComputeCell
 	cb := wrapper(computeCell, cell)
 	cb(cell.Value())
 	computeCell.AddCallback(cb)
-	computeCell.inputs = append(computeCell.inputs, cell)
 
 	associateInputCompute(cell, computeCell)
 
@@ -81,9 +81,6 @@ func (m *MyReactor) CreateCompute2(cell1 Cell, cell2 Cell, compute func(val1 int
 	cb(cell1.Value() + cell2.Value())
 	computeCell.AddCallback(cb)
 
-	computeCell.inputs = append(computeCell.inputs, cell1)
-	computeCell.inputs = append(computeCell.inputs, cell2)
-
 	associateInputCompute(cell1, computeCell)
 	associateInputCompute(cell2, computeCell)
 
@@ -107,12 +104,15 @@ type MyInputCell struct {
 
 // SetValue sets the value of the cell.
 func (m *MyInputCell) SetValue(val int) {
+	// only continue if values change
 	if m.val == val {
 		return
 	}
 
 	m.val = val
 
+	// call callbacks associated with this
+	// input cell
 	for _, sub := range pubsub[m] {
 		for i, cb := range sub.callbacks {
 			if i != 0 {
@@ -126,7 +126,6 @@ func (m *MyInputCell) SetValue(val int) {
 // MyComputeCell implements ComputeCell
 type MyComputeCell struct {
 	MyCell
-	inputs    []Cell
 	callbacks []func(int)
 }
 
@@ -156,10 +155,6 @@ func New() Reactor {
 }
 
 /// helper funcs ////
-func getFunctionName(i interface{}) string {
-	return runtime.FuncForPC(reflect.ValueOf(i).Pointer()).Name()
-}
-
 func associateInputCompute(pub Cell, subscriber *MyComputeCell) {
 	pubsub[pub] = append(pubsub[pub], subscriber)
 }
