@@ -183,52 +183,52 @@ func TestCallbackAddRemove(t *testing.T) {
 	}
 }
 
-// func TestMultipleCallbackRemoval(t *testing.T) {
-// 	r := New()
-// 	inp := r.CreateInput(1)
-// 	c := r.CreateCompute1(inp, func(v int) int { return v + 1 })
+func TestMultipleCallbackRemoval(t *testing.T) {
+	r := New()
+	inp := r.CreateInput(1)
+	c := r.CreateCompute1(inp, func(v int) int { return v + 1 })
 
-// 	numCallbacks := 5
+	numCallbacks := 5
 
-// 	calls := make([]int, numCallbacks)
-// 	cancelers := make([]Canceler, numCallbacks)
-// 	for i := 0; i < numCallbacks; i++ {
-// 		// Rebind i, otherwise all callbacks will use i = numCallbacks
-// 		i := i
-// 		cancelers[i] = c.AddCallback(func(v int) { calls[i]++ })
-// 	}
+	calls := make([]int, numCallbacks)
+	cancelers := make([]Canceler, numCallbacks)
+	for i := 0; i < numCallbacks; i++ {
+		// Rebind i, otherwise all callbacks will use i = numCallbacks
+		i := i
+		cancelers[i] = c.AddCallback(func(v int) { calls[i]++ })
+	}
 
-// 	inp.SetValue(2)
-// 	for i := 0; i < numCallbacks; i++ {
-// 		if calls[i] != 1 {
-// 			t.Fatalf("callback %d/%d should be called 1 time, was called %d times", i+1, numCallbacks, calls[i])
-// 		}
-// 		cancelers[i].Cancel()
-// 	}
+	inp.SetValue(2)
+	for i := 0; i < numCallbacks; i++ {
+		if calls[i] != 1 {
+			t.Fatalf("callback %d/%d should be called 1 time, was called %d times", i+1, numCallbacks, calls[i])
+		}
+		cancelers[i].Cancel()
+	}
 
-// 	inp.SetValue(3)
-// 	for i := 0; i < numCallbacks; i++ {
-// 		if calls[i] != 1 {
-// 			t.Fatalf("callback %d/%d was called after it was removed", i+1, numCallbacks)
-// 		}
-// 	}
-// }
+	inp.SetValue(3)
+	for i := 0; i < numCallbacks; i++ {
+		if calls[i] != 1 {
+			t.Fatalf("callback %d/%d was called after it was removed", i+1, numCallbacks)
+		}
+	}
+}
 
-// func TestRemoveIdempotence(t *testing.T) {
-// 	r := New()
-// 	inp := r.CreateInput(1)
-// 	output := r.CreateCompute1(inp, func(v int) int { return v + 1 })
-// 	timesCalled := 0
-// 	cb1 := output.AddCallback(func(int) {})
-// 	output.AddCallback(func(int) { timesCalled++ })
-// 	for i := 0; i < 10; i++ {
-// 		cb1.Cancel()
-// 	}
-// 	inp.SetValue(2)
-// 	if timesCalled != 1 {
-// 		t.Fatalf("remaining callback function was not called")
-// 	}
-// }
+func TestRemoveIdempotence(t *testing.T) {
+	r := New()
+	inp := r.CreateInput(1)
+	output := r.CreateCompute1(inp, func(v int) int { return v + 1 })
+	timesCalled := 0
+	cb1 := output.AddCallback(func(int) {})
+	output.AddCallback(func(int) { timesCalled++ })
+	for i := 0; i < 10; i++ {
+		cb1.Cancel()
+	}
+	inp.SetValue(2)
+	if timesCalled != 1 {
+		t.Fatalf("remaining callback function was not called")
+	}
+}
 
 // // Callbacks should only be called once even though
 // // multiple dependencies have changed.
