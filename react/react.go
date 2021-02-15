@@ -26,7 +26,13 @@ func (m *MyReactor) CreateCompute1(cell Cell, compute func(int) int) ComputeCell
 
 	wrapper := func(comp *MyComputeCell, in Cell) func(int) {
 		return func(val int) {
-			comp.val = compute(val)
+			newVal := compute(val)
+
+			if comp.val == newVal {
+				return
+			}
+
+			comp.val = newVal
 
 			for _, sub := range pubsub[comp] {
 				for _, cb := range sub.callbacks {
@@ -101,6 +107,10 @@ type MyInputCell struct {
 
 // SetValue sets the value of the cell.
 func (m *MyInputCell) SetValue(val int) {
+	if m.val == val {
+		return
+	}
+
 	m.val = val
 
 	for _, sub := range pubsub[m] {

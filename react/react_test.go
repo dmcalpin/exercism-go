@@ -129,29 +129,29 @@ func TestBasicCallback(t *testing.T) {
 	}
 }
 
-// // Callbacks and only trigger on change.
-// func TestOnlyCallOnChanges(t *testing.T) {
-// 	r := New()
-// 	i := r.CreateInput(1)
-// 	c := r.CreateCompute1(i, func(v int) int {
-// 		if v > 3 {
-// 			return v + 1
-// 		}
-// 		return 2
-// 	})
-// 	var observedCalled int
-// 	c.AddCallback(func(int) {
-// 		observedCalled++
-// 	})
-// 	i.SetValue(1)
-// 	if observedCalled != 0 {
-// 		t.Fatalf("observe function called even though input didn't change")
-// 	}
-// 	i.SetValue(2)
-// 	if observedCalled != 0 {
-// 		t.Fatalf("observe function called even though computed value didn't change")
-// 	}
-// }
+// Callbacks and only trigger on change.
+func TestOnlyCallOnChanges(t *testing.T) {
+	r := New()
+	i := r.CreateInput(1)
+	c := r.CreateCompute1(i, func(v int) int {
+		if v > 3 {
+			return v + 1
+		}
+		return 2
+	})
+	var observedCalled int
+	c.AddCallback(func(int) {
+		observedCalled++
+	})
+	i.SetValue(1)
+	if observedCalled != 0 {
+		t.Fatalf("observe function called even though input didn't change")
+	}
+	i.SetValue(2)
+	if observedCalled != 0 {
+		t.Fatalf("observe function called even though computed value didn't change")
+	}
+}
 
 // // Callbacks can be added and removed.
 // func TestCallbackAddRemove(t *testing.T) {
