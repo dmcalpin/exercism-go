@@ -230,40 +230,40 @@ func TestRemoveIdempotence(t *testing.T) {
 	}
 }
 
-// // Callbacks should only be called once even though
-// // multiple dependencies have changed.
-// func TestOnlyCallOnceOnMultipleDepChanges(t *testing.T) {
-// 	r := New()
-// 	i := r.CreateInput(1)
-// 	c1 := r.CreateCompute1(i, func(v int) int { return v + 1 })
-// 	c2 := r.CreateCompute1(i, func(v int) int { return v - 1 })
-// 	c3 := r.CreateCompute1(c2, func(v int) int { return v - 1 })
-// 	c4 := r.CreateCompute2(c1, c3, func(v1, v3 int) int { return v1 * v3 })
-// 	changed4 := 0
-// 	c4.AddCallback(func(int) { changed4++ })
-// 	i.SetValue(3)
-// 	if changed4 < 1 {
-// 		t.Fatalf("callback function was not called")
-// 	} else if changed4 > 1 {
-// 		t.Fatalf("callback function was called too often")
-// 	}
-// }
+// Callbacks should only be called once even though
+// multiple dependencies have changed.
+func TestOnlyCallOnceOnMultipleDepChanges(t *testing.T) {
+	r := New()
+	i := r.CreateInput(1)
+	c1 := r.CreateCompute1(i, func(v int) int { return v + 1 })
+	c2 := r.CreateCompute1(i, func(v int) int { return v - 1 })
+	c3 := r.CreateCompute1(c2, func(v int) int { return v - 1 })
+	c4 := r.CreateCompute2(c1, c3, func(v1, v3 int) int { return v1 * v3 })
+	changed4 := 0
+	c4.AddCallback(func(int) { changed4++ })
+	i.SetValue(3)
+	if changed4 < 1 {
+		t.Fatalf("callback function was not called")
+	} else if changed4 > 1 {
+		t.Fatalf("callback function was called too often")
+	}
+}
 
-// // Callbacks should not be called if dependencies change in such a way
-// // that the final value of the compute cell does not change.
-// func TestNoCallOnDepChangesResultingInNoChange(t *testing.T) {
-// 	r := New()
-// 	inp := r.CreateInput(0)
-// 	plus1 := r.CreateCompute1(inp, func(v int) int { return v + 1 })
-// 	minus1 := r.CreateCompute1(inp, func(v int) int { return v - 1 })
-// 	// The output's value is always 2, no matter what the input is.
-// 	output := r.CreateCompute2(plus1, minus1, func(v1, v2 int) int { return v1 - v2 })
+// Callbacks should not be called if dependencies change in such a way
+// that the final value of the compute cell does not change.
+func TestNoCallOnDepChangesResultingInNoChange(t *testing.T) {
+	r := New()
+	inp := r.CreateInput(0)
+	plus1 := r.CreateCompute1(inp, func(v int) int { return v + 1 })
+	minus1 := r.CreateCompute1(inp, func(v int) int { return v - 1 })
+	// The output's value is always 2, no matter what the input is.
+	output := r.CreateCompute2(plus1, minus1, func(v1, v2 int) int { return v1 - v2 })
 
-// 	timesCalled := 0
-// 	output.AddCallback(func(int) { timesCalled++ })
+	timesCalled := 0
+	output.AddCallback(func(int) { timesCalled++ })
 
-// 	inp.SetValue(5)
-// 	if timesCalled != 0 {
-// 		t.Fatalf("callback function called even though computed value didn't change")
-// 	}
-// }
+	inp.SetValue(5)
+	if timesCalled != 0 {
+		t.Fatalf("callback function called even though computed value didn't change")
+	}
+}
