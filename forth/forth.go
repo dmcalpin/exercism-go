@@ -7,91 +7,142 @@ import (
 	"strings"
 )
 
+type parseMode int
+
+const (
+	modeWordDefine parseMode = iota
+	modeEvaluating parseMode = iota
+)
+
 func Forth(input []string) ([]int, error) {
 	s := NewStack()
+	s.mode = modeEvaluating
 
 	for _, str := range input {
 		tokens := strings.Split(str, " ")
-		for _, token := range tokens {
-			num, err := strconv.ParseInt(token, 10, 64)
-			if err == nil {
-				s.Push(int(num))
-			} else {
-				switch token {
-				case "+":
-					v1, v2, err := s.GetTwo()
-					if err != nil {
-						return nil, err
-					}
-					sum := v1 + v2
-					s.Push(sum)
-				case "-":
-					v1, v2, err := s.GetTwo()
-					if err != nil {
-						return nil, err
-					}
-					diff := v1 - v2
-					s.Push(diff)
-				case "*":
-					v1, v2, err := s.GetTwo()
-					if err != nil {
-						return nil, err
-					}
-					mult := v1 * v2
-					s.Push(mult)
-				case "/":
-					v1, v2, err := s.GetTwo()
-					if err != nil {
-						return nil, err
-					}
-					if v2 == 0 {
-						return nil, errors.New("Division by zero")
-					}
-					mult := v1 / v2
-					s.Push(mult)
-				case "dup":
-					v1, err := s.GetOne()
-					if err != nil {
-						return nil, err
-					}
-					s.Push(v1)
-					s.Push(v1)
-				case "drop":
-					_, err := s.GetOne()
-					if err != nil {
-						return nil, err
-					}
 
-				case "swap":
-					v1, v2, err := s.GetTwo()
-					if err != nil {
-						return nil, err
-					}
-					s.Push(v2)
-					s.Push(v1)
-
-				case "over":
-					v1, v2, err := s.GetTwo()
-					if err != nil {
-						return nil, err
-					}
-					s.Push(v1)
-					s.Push(v2)
-					s.Push(v1)
-				}
-			}
+		err := evaluateTokens(s, tokens)
+		if err != nil {
+			return nil, err
 		}
 	}
 
 	return s.GetValues(), nil
 }
 
+func evaluateTokens(s *Stack, tokens []string) error {
+	for i, token := range tokens {
+		if s.mode == modeWordDefine {
+			if token == ";" {
+				s.mode = modeEvaluating
+				s.customWord = ""
+			} else if i == 1 {
+				s.customWords[token] = []string{}
+				s.customWord = token
+			} else {
+				s.customWords[s.customWord] = append(s.customWords[s.customWord], token)
+			}
+			continue
+		}
+
+		// evaluate custom commands
+		customDef, ok := s.customWords[token]
+		if ok {
+			return evaluateTokens(s, customDef)
+		}
+
+		// evaluate numbers
+		num, err := strconv.ParseInt(token, 10, 64)
+		if err == nil {
+			s.Push(int(num))
+			continue
+		}
+
+		// evaluate built-in commands
+		switch token {
+		case "+":
+			v1, v2, err := s.GetTwo()
+			if err != nil {
+				return err
+			}
+			sum := v1 + v2
+			s.Push(sum)
+		case "-":
+			v1, v2, err := s.GetTwo()
+			if err != nil {
+				return err
+			}
+			diff := v1 - v2
+			s.Push(diff)
+		case "*":
+			v1, v2, err := s.GetTwo()
+			if err != nil {
+				return err
+			}
+			mult := v1 * v2
+			s.Push(mult)
+		case "/":
+			v1, v2, err := s.GetTwo()
+			if err != nil {
+				return err
+			}
+			if v2 == 0 {
+				return errors.New("Division by zero")
+			}
+			mult := v1 / v2
+			s.Push(mult)
+		case "dup":
+			v1, err := s.GetOne()
+			if err != nil {
+				return err
+			}
+			s.Push(v1)
+			s.Push(v1)
+		case "drop":
+			_, err := s.GetOne()
+			if err != nil {
+				return err
+			}
+		case "swap":
+			v1, v2, err := s.GetTwo()
+			if err != nil {
+				return err
+			}
+			s.Push(v2)
+			s.Push(v1)
+		case "over":
+			v1, v2, err := s.GetTwo()
+			if err != nil {
+				return err
+			}
+			s.Push(v1)
+			s.Push(v2)
+			s.Push(v1)
+		case ":":
+			s.mode = modeWordDefine
+		case ";":
+			s.mode = modeEvaluating
+			s.customWord = ""
+		default:
+			return errors.New("Undefined command")
+		}
+
+	}
+	return nil
+}
+
 type Stack struct {
-	lst *list.List
+	lst         *list.List
+	mode        parseMode
+	customWord  string
+	customWords map[string][]string
 }
 
 func NewStack() *Stack {
-	s := Stack{list.New()}
+	s := Stack{
+		lst:         list.New(),
+		customWords: map[string][]string{},
+	}
 	return &s
 }
 
