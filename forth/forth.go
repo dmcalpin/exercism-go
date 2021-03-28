@@ -17,31 +17,30 @@ func Forth(input []string) ([]int, error) {
 			if err == nil {
 				s.Push(int(num))
 			} else {
-
 				switch token {
 				case "+":
-					v1, v2, err := getTwo(s)
+					v1, v2, err := s.GetTwo()
 					if err != nil {
 						return nil, err
 					}
 					sum := v1 + v2
 					s.Push(sum)
 				case "-":
-					v1, v2, err := getTwo(s)
+					v1, v2, err := s.GetTwo()
 					if err != nil {
 						return nil, err
 					}
 					diff := v1 - v2
 					s.Push(diff)
 				case "*":
-					v1, v2, err := getTwo(s)
+					v1, v2, err := s.GetTwo()
 					if err != nil {
 						return nil, err
 					}
 					mult := v1 * v2
 					s.Push(mult)
 				case "/":
-					v1, v2, err := getTwo(s)
+					v1, v2, err := s.GetTwo()
 					if err != nil {
 						return nil, err
 					}
@@ -51,20 +50,20 @@ func Forth(input []string) ([]int, error) {
 					mult := v1 / v2
 					s.Push(mult)
 				case "dup":
-					v1, err := getOne(s)
+					v1, err := s.GetOne()
 					if err != nil {
 						return nil, err
 					}
 					s.Push(v1)
 					s.Push(v1)
 				case "drop":
-					_, err := getOne(s)
+					_, err := s.GetOne()
 					if err != nil {
 						return nil, err
 					}
 
 				case "swap":
-					v1, v2, err := getTwo(s)
+					v1, v2, err := s.GetTwo()
 					if err != nil {
 						return nil, err
 					}
@@ -72,7 +71,7 @@ func Forth(input []string) ([]int, error) {
 					s.Push(v1)
 
 				case "over":
-					v1, v2, err := getTwo(s)
+					v1, v2, err := s.GetTwo()
 					if err != nil {
 						return nil, err
 					}
@@ -85,23 +84,6 @@ func Forth(input []string) ([]int, error) {
 	}
 
 	return s.GetValues(), nil
-
-}
-
-func getTwo(s *Stack) (int, int, error) {
-	if s.Front() == nil || s.Front().Next() == nil {
-		return 0, 0, errors.New("No value in stack")
-	}
-	v2 := s.Pop().Value
-	v1 := s.Pop().Value
-	return v1, v2, nil
-}
-func getOne(s *Stack) (int, error) {
-	if s.Front() == nil {
-		return 0, errors.New("No value in stack")
-	}
-	v1 := s.Pop().Value
-	return v1, nil
 }
 
 type Stack struct {
@@ -157,11 +139,30 @@ func (s *Stack) Empty() bool {
 func (s *Stack) GetValues() []int {
 	values := make([]int, s.Size())
 	i := s.Size() - 1
-	for !s.Empty() {
-		values[i] = s.Pop().Value
+	elem := s.Front()
+	for elem != nil {
+		values[i] = elem.Value
+		elem = elem.Next()
 		i--
 	}
 	return values
+}
+
+func (s *Stack) GetOne() (int, error) {
+	if s.Front() == nil {
+		return 0, errors.New("No value in stack")
+	}
+	v1 := s.Pop().Value
+	return v1, nil
+}
+
+func (s *Stack) GetTwo() (int, int, error) {
+	if s.Front() == nil || s.Front().Next() == nil {
+		return 0, 0, errors.New("No value in stack")
+	}
+	v2 := s.Pop().Value
+	v1 := s.Pop().Value
+	return v1, v2, nil
 }
 
 type StackElement struct {
