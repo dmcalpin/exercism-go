@@ -19,7 +19,8 @@ func Forth(input []string) ([]int, error) {
 	s.mode = modeEvaluating
 
 	for _, str := range input {
-		tokens := strings.Split(str, " ")
+		normalizedStr := strings.ToLower(str)
+		tokens := strings.Split(normalizedStr, " ")
 
 		// define mode
 		if tokens[0] == ":" {

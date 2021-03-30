@@ -274,36 +274,36 @@ var testGroups = []testGroup{
 	{
 		group: "case-insensitivity",
 		tests: []testCase{
-			// {
-			// 	"DUP is case-insensitive",
-			// 	[]string{"1 DUP Dup dup"},
-			// 	[]int{1, 1, 1, 1},
-			// },
-			// {
-			// 	"DROP is case-insensitive",
-			// 	[]string{"1 2 3 4 DROP Drop drop"},
-			// 	[]int{1},
-			// },
-			// {
-			// 	"SWAP is case-insensitive",
-			// 	[]string{"1 2 SWAP 3 Swap 4 swap"},
-			// 	[]int{2, 3, 4, 1},
-			// },
-			// {
-			// 	"OVER is case-insensitive",
-			// 	[]string{"1 2 OVER Over over"},
-			// 	[]int{1, 2, 1, 2, 1},
-			// },
-			// {
-			// 	"user-defined words are case-insensitive",
-			// 	[]string{": foo dup ;", "1 FOO Foo foo"},
-			// 	[]int{1, 1, 1, 1},
-			// },
-			// {
-			// 	"definitions are case-insensitive",
-			// 	[]string{": SWAP DUP Dup dup ;", "1 swap"},
-			// 	[]int{1, 1, 1, 1},
-			// },
+			{
+				"DUP is case-insensitive",
+				[]string{"1 DUP Dup dup"},
+				[]int{1, 1, 1, 1},
+			},
+			{
+				"DROP is case-insensitive",
+				[]string{"1 2 3 4 DROP Drop drop"},
+				[]int{1},
+			},
+			{
+				"SWAP is case-insensitive",
+				[]string{"1 2 SWAP 3 Swap 4 swap"},
+				[]int{2, 3, 4, 1},
+			},
+			{
+				"OVER is case-insensitive",
+				[]string{"1 2 OVER Over over"},
+				[]int{1, 2, 1, 2, 1},
+			},
+			{
+				"user-defined words are case-insensitive",
+				[]string{": foo dup ;", "1 FOO Foo foo"},
+				[]int{1, 1, 1, 1},
+			},
+			{
+				"definitions are case-insensitive",
+				[]string{": SWAP DUP Dup dup ;", "1 swap"},
+				[]int{1, 1, 1, 1},
+			},
 		},
 	},
 }
