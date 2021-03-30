@@ -21,9 +21,15 @@ func Forth(input []string) ([]int, error) {
 	for _, str := range input {
 		tokens := strings.Split(str, " ")
 
-		err := evaluateTokens(s, tokens)
-		if err != nil {
-			return nil, err
+		// define mode
+		if tokens[0] == ":" {
+			s.defineWord(tokens)
+		} else {
+			// evaluate mode
+			err := evaluateTokens(s, tokens)
+			if err != nil {
+				return nil, err
+			}
 		}
 	}
 
@@ -31,13 +37,7 @@ func Forth(input []string) ([]int, error) {
 }
 
 func evaluateTokens(s *Stack, tokens []string) error {
-	for i, token := range tokens {
-		// define custom words
-		if s.mode == modeWordDefine {
-			s.defineWord(token, i)
-			continue
-		}
-
+	for _, token := range tokens {
 		// evaluate numbers
 		num, err := strconv.ParseInt(token, 10, 64)
 		if err == nil {
@@ -53,71 +53,14 @@ func evaluateTokens(s *Stack, tokens []string) error {
 		}
 
 		// evaluate built-in commands
-		switch token {
-		case "+":
-			v1, v2, err := s.getTwo()
-			if err != nil {
-				return err
-			}
-			sum := v1 + v2
-			s.Push(sum)
-		case "-":
-			v1, v2, err := s.getTwo()
-			if err != nil {
-				return err
-			}
-			diff := v1 - v2
-			s.Push(diff)
-		case "*":
-			v1, v2, err := s.getTwo()
-			if err != nil {
-				return err
-			}
-			mult := v1 * v2
-			s.Push(mult)
-		case "/":
-			v1, v2, err := s.getTwo()
-			if err != nil {
-				return err
-			}
-			if v2 == 0 {
-				return errors.New("Division by zero")
-			}
-			mult := v1 / v2
-			s.Push(mult)
-		case "dup":
-			v1, err := s.getOne()
-			if err != nil {
-				return err
-			}
-			s.Push(v1)
-			s.Push(v1)
-		case "drop":
-			_, err := s.getOne()
-			if err != nil {
-				return err
-			}
-		case "swap":
-			v1, v2, err := s.getTwo()
-			if err != nil {
-				return err
-			}
-			s.Push(v2)
-			s.Push(v1)
-		case "over":
-			v1, v2, err := s.getTwo()
-			if err != nil {
-				return err
-			}
-			s.Push(v1)
-			s.Push(v2)
-			s.Push(v1)
-		case ":":
-			s.mode = modeWordDefine
-		default:
-			return errors.New("Undefined command")
+		cmd, ok := s.commands[token]
+		if !ok {
+			return errors.New("Unknown command")
 		}
-
+		err = cmd()
+		if err != nil {
+			return err
+		}
 	}
 	return nil
 }
@@ -127,6 +70,7 @@ type Stack struct {
 	mode        parseMode
 	customWord  string
 	customWords map[string][]string
+	commands    map[string]func() error
 }
 
 func NewStack() *Stack {
@@ -134,6 +78,84 @@ func NewStack() *Stack {
 		lst:         list.New(),
 		customWords: map[string][]string{},
 	}
+
+	s.commands = map[string]func() error{
+		"+": func() error {
+			v1, v2, err := s.getTwo()
+			if err != nil {
+				return err
+			}
+			sum := v1 + v2
+			s.Push(sum)
+			return nil
+		},
+		"-": func() error {
+			v1, v2, err := s.getTwo()
+			if err != nil {
+				return err
+			}
+			diff := v1 - v2
+			s.Push(diff)
+			return nil
+		},
+		"*": func() error {
+			v1, v2, err := s.getTwo()
+			if err != nil {
+				return err
+			}
+			mult := v1 * v2
+			s.Push(mult)
+			return nil
+		},
+		"/": func() error {
+			v1, v2, err := s.getTwo()
+			if err != nil {
+				return err
+			}
+			if v2 == 0 {
+				return errors.New("Division by zero")
+			}
+			mult := v1 / v2
+			s.Push(mult)
+			return nil
+		},
+		"dup": func() error {
+			v1, err := s.getOne()
+			if err != nil {
+				return err
+			}
+			s.Push(v1)
+			s.Push(v1)
+			return nil
+		},
+		"drop": func() error {
+			_, err := s.getOne()
+			if err != nil {
+				return err
+			}
+			return nil
+		},
+		"swap": func() error {
+			v1, v2, err := s.getTwo()
+			if err != nil {
+				return err
+			}
+			s.Push(v2)
+			s.Push(v1)
+			return nil
+		},
+		"over": func() error {
+			v1, v2, err := s.getTwo()
+			if err != nil {
+				return err
+			}
+			s.Push(v1)
+			s.Push(v2)
+			s.Push(v1)
+			return nil
+		},
+	}
+
 	return &s
 }
 
@@ -207,22 +229,27 @@ func (s *Stack) getTwo() (int, int, error) {
 	return v1, v2, nil
 }
 
-func (s *Stack) defineWord(token string, i int) {
-	if token == ";" { // close the mode
-		s.mode = modeEvaluating
-		s.customWord = ""
-	} else if i == 1 { // initialize the word
-		s.customWords[token] = []string{}
-		s.customWord = token
-	} else { // add to definition
-		cmdVals, ok := s.customWords[token]
-		if ok && len(cmdVals) == 1 {
-			token = cmdVals[0]
-			s.customWords[s.customWord] = append(s.customWords[s.customWord], token)
-		} else {
-			s.customWords[s.customWord] = append(s.customWords[s.customWord], token)
+func (s *Stack) defineWord(tokens []string) {
+	for i, token := range tokens {
+		if i == 0 || i == len(tokens)-1 {
+			continue
 		}
 
+		if token == ";" { // close the mode
+			s.mode = modeEvaluating
+			s.customWord = ""
+		} else if i == 1 { // initialize the word
+			s.customWords[token] = []string{}
+			s.customWord = token
+		} else { // add to definition
+			cmdVals, ok := s.customWords[token]
+			if ok && len(cmdVals) == 1 {
+				token = cmdVals[0]
+				s.customWords[s.customWord] = append(s.customWords[s.customWord], token)
+			} else {
+				s.customWords[s.customWord] = append(s.customWords[s.customWord], token)
+			}
+		}
 	}
 }
 
