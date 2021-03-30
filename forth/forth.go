@@ -23,7 +23,10 @@ func Forth(input []string) ([]int, error) {
 
 		// define mode
 		if tokens[0] == ":" {
-			s.defineWord(tokens)
+			err := s.defineWord(tokens[1 : len(tokens)-1])
+			if err != nil {
+				return nil, err
+			}
 		} else {
 			// evaluate mode
 			err := evaluateTokens(s, tokens)
@@ -229,28 +232,36 @@ func (s *Stack) getTwo() (int, int, error) {
 	return v1, v2, nil
 }
 
-func (s *Stack) defineWord(tokens []string) {
+func (s *Stack) defineWord(tokens []string) error {
+	cmds := []string{}
+
 	for i, token := range tokens {
-		if i == 0 || i == len(tokens)-1 {
+		if i == 0 { // initialize the word
+			// numbers just get pushed to the stack
+			_, err := strconv.ParseInt(token, 10, 64)
+			if err == nil {
+				return errors.New("Cannot override numbers")
+			}
+
+			s.customWord = token
 			continue
 		}
 
-		if token == ";" { // close the mode
-			s.mode = modeEvaluating
-			s.customWord = ""
-		} else if i == 1 { // initialize the word
-			s.customWords[token] = []string{}
-			s.customWord = token
-		} else { // add to definition
-			cmdVals, ok := s.customWords[token]
-			if ok && len(cmdVals) == 1 {
-				token = cmdVals[0]
-				s.customWords[s.customWord] = append(s.customWords[s.customWord], token)
-			} else {
-				s.customWords[s.customWord] = append(s.customWords[s.customWord], token)
+		// add to definition
+		cmdVals, ok := s.customWords[token]
+		if ok && len(cmdVals) > 0 {
+			for _, val := range cmdVals {
+				cmds = append(cmds, val)
 			}
+		} else {
+			cmds = append(cmds, token)
 		}
+
 	}
+
+	s.customWords[s.customWord] = cmds
+	s.customWord = ""
+	return nil
 }
 
 type StackElement struct {

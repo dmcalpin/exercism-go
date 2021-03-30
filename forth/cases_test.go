@@ -254,21 +254,21 @@ var testGroups = []testGroup{
 				[]string{": foo 5 ;", ": bar foo ;", ": foo 6 ;", "bar foo"},
 				[]int{5, 6},
 			},
-			// {
-			// 	"can define word that uses word with the same name",
-			// 	[]string{": foo 10 ;", ": foo foo 1 + ;", "foo"},
-			// 	[]int{11},
-			// },
-			// {
-			// 	"cannot redefine numbers",
-			// 	[]string{": 1 2 ;"},
-			// 	[]int(nil),
-			// },
-			// {
-			// 	"errors if executing a non-existent word",
-			// 	[]string{"foo"},
-			// 	[]int(nil),
-			// },
+			{
+				"can define word that uses word with the same name",
+				[]string{": foo 10 ;", ": foo foo 1 + ;", "foo"},
+				[]int{11},
+			},
+			{
+				"cannot redefine numbers",
+				[]string{": 1 2 ;"},
+				[]int(nil),
+			},
+			{
+				"errors if executing a non-existent word",
+				[]string{"foo"},
+				[]int(nil),
+			},
 		},
 	},
 	{
