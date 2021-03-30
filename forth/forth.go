@@ -7,61 +7,54 @@ import (
 	"strings"
 )
 
-type parseMode int
-
-const (
-	modeWordDefine parseMode = iota
-	modeEvaluating parseMode = iota
+var (
+	errDivisionByZero  = errors.New("Cannot divide by zero")
+	errNoElem          = errors.New("No element on stack")
+	errCommandNotFound = errors.New("Command not found")
+	errOverride        = errors.New("Cannot override numbers")
 )
 
 func Forth(input []string) ([]int, error) {
 	s := NewStack()
-	s.mode = modeEvaluating
+
+	var err error
 
 	for _, str := range input {
 		normalizedStr := strings.ToLower(str)
 		tokens := strings.Split(normalizedStr, " ")
 
-		// define mode
 		if tokens[0] == ":" {
-			err := s.defineWord(tokens[1 : len(tokens)-1])
-			if err != nil {
-				return nil, err
-			}
+			err = s.defineWord(tokens)
 		} else {
-			// evaluate mode
-			err := evaluateTokens(s, tokens)
-			if err != nil {
-				return nil, err
-			}
+			err = s.evaluateTokens(tokens)
+		}
+
+		if err != nil {
+			return nil, err
 		}
 	}
 
 	return s.GetValues(), nil
 }
 
-func evaluateTokens(s *Stack, tokens []string) error {
+func (s *Stack) evaluateTokens(tokens []string) error {
 	for _, token := range tokens {
-		// evaluate numbers
+		// Push numbers onto the stack
 		num, err := strconv.ParseInt(token, 10, 64)
 		if err == nil {
 			s.Push(int(num))
 			continue
 		}
 
-		// evaluate custom commands
+		// push custom words onto the stack
 		customDef, ok := s.customWords[token]
 		if ok {
-			evaluateTokens(s, customDef)
+			s.evaluateTokens(customDef)
 			continue
 		}
 
-		// evaluate built-in commands
-		cmd, ok := s.commands[token]
-		if !ok {
-			return errors.New("Unknown command")
-		}
-		err = cmd()
+		// push predefined commands onto the stack
+		err = s.runCommand(token)
 		if err != nil {
 			return err
 		}
@@ -70,138 +63,43 @@ func evaluateTokens(s *Stack, tokens []string) error {
 }
 
 type Stack struct {
-	lst         *list.List
-	mode        parseMode
-	customWord  string
+	*list.List
 	customWords map[string][]string
-	commands    map[string]func() error
 }
 
 func NewStack() *Stack {
 	s := Stack{
-		lst:         list.New(),
+		List:        list.New(),
 		customWords: map[string][]string{},
 	}
-
-	s.commands = map[string]func() error{
-		"+": func() error {
-			v1, v2, err := s.getTwo()
-			if err != nil {
-				return err
-			}
-			sum := v1 + v2
-			s.Push(sum)
-			return nil
-		},
-		"-": func() error {
-			v1, v2, err := s.getTwo()
-			if err != nil {
-				return err
-			}
-			diff := v1 - v2
-			s.Push(diff)
-			return nil
-		},
-		"*": func() error {
-			v1, v2, err := s.getTwo()
-			if err != nil {
-				return err
-			}
-			mult := v1 * v2
-			s.Push(mult)
-			return nil
-		},
-		"/": func() error {
-			v1, v2, err := s.getTwo()
-			if err != nil {
-				return err
-			}
-			if v2 == 0 {
-				return errors.New("Division by zero")
-			}
-			mult := v1 / v2
-			s.Push(mult)
-			return nil
-		},
-		"dup": func() error {
-			v1, err := s.getOne()
-			if err != nil {
-				return err
-			}
-			s.Push(v1)
-			s.Push(v1)
-			return nil
-		},
-		"drop": func() error {
-			_, err := s.getOne()
-			if err != nil {
-				return err
-			}
-			return nil
-		},
-		"swap": func() error {
-			v1, v2, err := s.getTwo()
-			if err != nil {
-				return err
-			}
-			s.Push(v2)
-			s.Push(v1)
-			return nil
-		},
-		"over": func() error {
-			v1, v2, err := s.getTwo()
-			if err != nil {
-				return err
-			}
-			s.Push(v1)
-			s.Push(v2)
-			s.Push(v1)
-			return nil
-		},
-	}
-
 	return &s
 }
 
-func (s *Stack) Push(v int) *StackElement {
-	elem := s.lst.PushFront(v)
-	return &StackElement{
-		Value:    elem.Value.(int),
-		listElem: elem,
+func (s *Stack) Push(v int) *list.Element {
+	return s.PushFront(v)
+}
+
+func (s *Stack) Pop() (*list.Element, error) {
+	elem := s.Front()
+	if elem != nil {
+		s.Remove(elem)
+		return elem, nil
+	} else {
+		return nil, errNoElem
 	}
 }
 
-func (s *Stack) Pop() *StackElement {
-	elem := s.lst.Front()
-	if elem != nil {
-		s.lst.Remove(elem)
-		return &StackElement{
-			Value:    elem.Value.(int),
-			listElem: elem,
-		}
-	} else {
-		return nil
-	}
+func (s *Stack) Front() *list.Element {
+	return s.List.Front()
 }
 
-func (s *Stack) Front() *StackElement {
-	elem := s.lst.Front()
-	if elem != nil {
-		return &StackElement{
-			Value:    elem.Value.(int),
-			listElem: elem,
-		}
-	} else {
-		return nil
-	}
+func (s *Stack) Remove(le *list.Element) int {
+	s.List.Remove(le)
+	return le.Value.(int)
 }
 
 func (s *Stack) Size() int {
-	return s.lst.Len()
-}
-
-func (s *Stack) Empty() bool {
-	return s.Size() == 0
+	return s.List.Len()
 }
 
 func (s *Stack) GetValues() []int {
@@ -209,75 +107,86 @@ func (s *Stack) GetValues() []int {
 	i := s.Size() - 1
 	elem := s.Front()
 	for elem != nil {
-		values[i] = elem.Value
+		values[i] = elem.Value.(int)
 		elem = elem.Next()
 		i--
 	}
 	return values
 }
 
-func (s *Stack) getOne() (int, error) {
-	if s.Front() == nil {
-		return 0, errors.New("No value in stack")
-	}
-	v1 := s.Pop().Value
-	return v1, nil
-}
-
-func (s *Stack) getTwo() (int, int, error) {
-	if s.Front() == nil || s.Front().Next() == nil {
-		return 0, 0, errors.New("No value in stack")
-	}
-	v2 := s.Pop().Value
-	v1 := s.Pop().Value
-	return v1, v2, nil
-}
-
-func (s *Stack) defineWord(tokens []string) error {
+// defines a custom word. the slice starts with ":" and
+// ends with ";" so these need to be removed. The second
+// elem is the name of the custom word, everything
+// that follows is the commands or numbers
+func (s *Stack) defineWord(definition []string) error {
 	cmds := []string{}
+	customWord := definition[1]
+	definition = definition[2 : len(definition)-1]
 
-	for i, token := range tokens {
-		if i == 0 { // initialize the word
-			// numbers just get pushed to the stack
-			_, err := strconv.ParseInt(token, 10, 64)
-			if err == nil {
-				return errors.New("Cannot override numbers")
-			}
+	// numbers not allowed
+	_, err := strconv.ParseInt(customWord, 10, 64)
+	if err == nil {
+		return errOverride
+	}
 
-			s.customWord = token
-			continue
+	for _, token := range definition {
+		// use custom word def if found
+		cmdVals, ok := s.customWords[token]
+		if ok {
+			token = cmdVals[0]
 		}
 
 		// add to definition
-		cmdVals, ok := s.customWords[token]
-		if ok && len(cmdVals) > 0 {
-			for _, val := range cmdVals {
-				cmds = append(cmds, val)
-			}
-		} else {
-			cmds = append(cmds, token)
-		}
-
+		cmds = append(cmds, token)
 	}
 
-	s.customWords[s.customWord] = cmds
-	s.customWord = ""
+	s.customWords[customWord] = cmds
+
 	return nil
 }
 
-type StackElement struct {
-	Value    int
-	listElem *list.Element
-}
-
-func (se *StackElement) Next() *StackElement {
-	elem := se.listElem.Next()
-	if elem != nil {
-		return &StackElement{
-			Value:    elem.Value.(int),
-			listElem: elem,
-		}
-	} else {
-		return nil
+func (s *Stack) runCommand(cmd string) error {
+	elem1, err := s.Pop() // this also handles "drop"
+	if err != nil {
+		return err
 	}
+	v1 := elem1.Value.(int)
+
+	switch cmd {
+	case "drop": // does nothing
+	case "dup":
+		s.Push(v1)
+		s.Push(v1)
+	default: // cmds which need 2 params
+		elem2, err := s.Pop()
+		if err != nil {
+			return err
+		}
+		v2 := elem2.Value.(int)
+
+		switch cmd {
+		case "+":
+			s.Push(v1 + v2)
+		case "-":
+			s.Push(v2 - v1)
+		case "*":
+			s.Push(v1 * v2)
+		case "/":
+			if v1 == 0 {
+				return errDivisionByZero
+			}
+			s.Push(v2 / v1)
+		case "swap":
+			s.Push(v1)
+			s.Push(v2)
+		case "over":
+			s.Push(v2)
+			s.Push(v1)
+			s.Push(v2)
+		default:
+			return errCommandNotFound
+		}
+	}
+
+	return nil
 }
