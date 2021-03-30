@@ -32,23 +32,10 @@ func Forth(input []string) ([]int, error) {
 
 func evaluateTokens(s *Stack, tokens []string) error {
 	for i, token := range tokens {
+		// define custom words
 		if s.mode == modeWordDefine {
-			if token == ";" {
-				s.mode = modeEvaluating
-				s.customWord = ""
-			} else if i == 1 {
-				s.customWords[token] = []string{}
-				s.customWord = token
-			} else {
-				s.customWords[s.customWord] = append(s.customWords[s.customWord], token)
-			}
+			s.defineWord(token, i)
 			continue
-		}
-
-		// evaluate custom commands
-		customDef, ok := s.customWords[token]
-		if ok {
-			return evaluateTokens(s, customDef)
 		}
 
 		// evaluate numbers
@@ -58,31 +45,38 @@ func evaluateTokens(s *Stack, tokens []string) error {
 			continue
 		}
 
+		// evaluate custom commands
+		customDef, ok := s.customWords[token]
+		if ok {
+			evaluateTokens(s, customDef)
+			continue
+		}
+
 		// evaluate built-in commands
 		switch token {
 		case "+":
-			v1, v2, err := s.GetTwo()
+			v1, v2, err := s.getTwo()
 			if err != nil {
 				return err
 			}
 			sum := v1 + v2
 			s.Push(sum)
 		case "-":
-			v1, v2, err := s.GetTwo()
+			v1, v2, err := s.getTwo()
 			if err != nil {
 				return err
 			}
 			diff := v1 - v2
 			s.Push(diff)
 		case "*":
-			v1, v2, err := s.GetTwo()
+			v1, v2, err := s.getTwo()
 			if err != nil {
 				return err
 			}
 			mult := v1 * v2
 			s.Push(mult)
 		case "/":
-			v1, v2, err := s.GetTwo()
+			v1, v2, err := s.getTwo()
 			if err != nil {
 				return err
 			}
@@ -92,26 +86,26 @@ func evaluateTokens(s *Stack, tokens []string) error {
 			mult := v1 / v2
 			s.Push(mult)
 		case "dup":
-			v1, err := s.GetOne()
+			v1, err := s.getOne()
 			if err != nil {
 				return err
 			}
 			s.Push(v1)
 			s.Push(v1)
 		case "drop":
-			_, err := s.GetOne()
+			_, err := s.getOne()
 			if err != nil {
 				return err
 			}
 		case "swap":
-			v1, v2, err := s.GetTwo()
+			v1, v2, err := s.getTwo()
 			if err != nil {
 				return err
 			}
 			s.Push(v2)
 			s.Push(v1)
 		case "over":
-			v1, v2, err := s.GetTwo()
+			v1, v2, err := s.getTwo()
 			if err != nil {
 				return err
 			}
@@ -120,9 +114,6 @@ func evaluateTokens(s *Stack, tokens []string) error {
 			s.Push(v1)
 		case ":":
 			s.mode = modeWordDefine
-		case ";":
-			s.mode = modeEvaluating
-			s.customWord = ""
 		default:
 			return errors.New("Undefined command")
 		}
@@ -199,7 +190,7 @@ func (s *Stack) GetValues() []int {
 	return values
 }
 
-func (s *Stack) GetOne() (int, error) {
+func (s *Stack) getOne() (int, error) {
 	if s.Front() == nil {
 		return 0, errors.New("No value in stack")
 	}
@@ -207,13 +198,32 @@ func (s *Stack) GetOne() (int, error) {
 	return v1, nil
 }
 
-func (s *Stack) GetTwo() (int, int, error) {
+func (s *Stack) getTwo() (int, int, error) {
 	if s.Front() == nil || s.Front().Next() == nil {
 		return 0, 0, errors.New("No value in stack")
 	}
 	v2 := s.Pop().Value
 	v1 := s.Pop().Value
 	return v1, v2, nil
+}
+
+func (s *Stack) defineWord(token string, i int) {
+	if token == ";" { // close the mode
+		s.mode = modeEvaluating
+		s.customWord = ""
+	} else if i == 1 { // initialize the word
+		s.customWords[token] = []string{}
+		s.customWord = token
+	} else { // add to definition
+		cmdVals, ok := s.customWords[token]
+		if ok && len(cmdVals) == 1 {
+			token = cmdVals[0]
+			s.customWords[s.customWord] = append(s.customWords[s.customWord], token)
+		} else {
+			s.customWords[s.customWord] = append(s.customWords[s.customWord], token)
+		}
+
+	}
 }
 
 type StackElement struct {
