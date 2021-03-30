@@ -34,32 +34,7 @@ func Forth(input []string) ([]int, error) {
 		}
 	}
 
-	return s.GetValues(), nil
-}
-
-func (s *Stack) evaluateTokens(tokens []string) error {
-	for _, token := range tokens {
-		// Push numbers onto the stack
-		num, err := strconv.ParseInt(token, 10, 64)
-		if err == nil {
-			s.Push(int(num))
-			continue
-		}
-
-		// push custom words onto the stack
-		customDef, ok := s.customWords[token]
-		if ok {
-			s.evaluateTokens(customDef)
-			continue
-		}
-
-		// push predefined commands onto the stack
-		err = s.runCommand(token)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
+	return s.getValues(), nil
 }
 
 type Stack struct {
@@ -89,22 +64,9 @@ func (s *Stack) Pop() (*list.Element, error) {
 	}
 }
 
-func (s *Stack) Front() *list.Element {
-	return s.List.Front()
-}
-
-func (s *Stack) Remove(le *list.Element) int {
-	s.List.Remove(le)
-	return le.Value.(int)
-}
-
-func (s *Stack) Size() int {
-	return s.List.Len()
-}
-
-func (s *Stack) GetValues() []int {
-	values := make([]int, s.Size())
-	i := s.Size() - 1
+func (s *Stack) getValues() []int {
+	values := make([]int, s.List.Len())
+	i := s.List.Len() - 1
 	elem := s.Front()
 	for elem != nil {
 		values[i] = elem.Value.(int)
@@ -114,14 +76,43 @@ func (s *Stack) GetValues() []int {
 	return values
 }
 
+// evaluateTokens pushes commands onto the stack
+// depending on what type they are
+func (s *Stack) evaluateTokens(tokens []string) error {
+	for _, token := range tokens {
+		// push numbers onto the stack
+		num, err := strconv.ParseInt(token, 10, 64)
+		if err == nil {
+			s.Push(int(num))
+			continue
+		}
+
+		// custom words are just a predefined
+		// set of tokens, so we can just call
+		// this function again on them
+		customDef, ok := s.customWords[token]
+		if ok {
+			s.evaluateTokens(customDef)
+			continue
+		}
+
+		// push predefined commands onto the stack
+		err = s.runCommand(token)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // defines a custom word. the slice starts with ":" and
 // ends with ";" so these need to be removed. The second
 // elem is the name of the custom word, everything
 // that follows is the commands or numbers
 func (s *Stack) defineWord(definition []string) error {
-	cmds := []string{}
 	customWord := definition[1]
 	definition = definition[2 : len(definition)-1]
+	cmds := make([]string, len(definition))
 
 	// numbers not allowed
 	_, err := strconv.ParseInt(customWord, 10, 64)
@@ -129,7 +120,7 @@ func (s *Stack) defineWord(definition []string) error {
 		return errOverride
 	}
 
-	for _, token := range definition {
+	for i, token := range definition {
 		// use custom word def if found
 		cmdVals, ok := s.customWords[token]
 		if ok {
@@ -137,7 +128,7 @@ func (s *Stack) defineWord(definition []string) error {
 		}
 
 		// add to definition
-		cmds = append(cmds, token)
+		cmds[i] = token
 	}
 
 	s.customWords[customWord] = cmds
@@ -145,6 +136,8 @@ func (s *Stack) defineWord(definition []string) error {
 	return nil
 }
 
+// runCommands runs predefined commands which may
+// not be overridden
 func (s *Stack) runCommand(cmd string) error {
 	elem1, err := s.Pop() // this also handles "drop"
 	if err != nil {
