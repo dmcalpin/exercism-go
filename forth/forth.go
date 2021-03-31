@@ -40,7 +40,7 @@ func Forth(input []string) ([]int, error) {
 		}
 	}
 
-	return s.getValues(), nil
+	return s.list, nil
 }
 
 type Stack struct {
@@ -56,9 +56,8 @@ func NewStack() *Stack {
 	return &s
 }
 
-func (s *Stack) Push(v int) int {
-	s.list = append(s.list, v)
-	return v
+func (s *Stack) Push(v ...int) {
+	s.list = append(s.list, v...)
 }
 
 func (s *Stack) Pop() (int, error) {
@@ -69,10 +68,6 @@ func (s *Stack) Pop() (int, error) {
 	} else {
 		return 0, ErrNoElem
 	}
-}
-
-func (s *Stack) getValues() []int {
-	return s.list
 }
 
 // evaluateTokens pushes commands onto the stack
@@ -110,13 +105,14 @@ func (s *Stack) evaluateTokens(tokens []string) error {
 // that follows is the commands or numbers
 func (s *Stack) defineWord(definition []string) error {
 	customWord := definition[1]
-	definition = definition[2 : len(definition)-1]
-	cmds := make([]string, len(definition))
 
 	// numbers not allowed
 	if isNum(customWord) {
 		return ErrOverride
 	}
+
+	definition = definition[2 : len(definition)-1]
+	cmds := make([]string, len(definition))
 
 	for i, token := range definition {
 		// use custom word def if found
@@ -146,8 +142,7 @@ func (s *Stack) runCommand(cmd string) error {
 	switch cmd {
 	case "drop": // does nothing
 	case "dup":
-		s.Push(v1)
-		s.Push(v1)
+		s.Push(v1, v1)
 	default: // cmds which need 2 params
 		elem2, err := s.Pop()
 		if err != nil {
@@ -168,12 +163,9 @@ func (s *Stack) runCommand(cmd string) error {
 			}
 			s.Push(v2 / v1)
 		case "swap":
-			s.Push(v1)
-			s.Push(v2)
+			s.Push(v1, v2)
 		case "over":
-			s.Push(v2)
-			s.Push(v1)
-			s.Push(v2)
+			s.Push(v2, v1, v2)
 		default:
 			return ErrCommandNotFound
 		}
