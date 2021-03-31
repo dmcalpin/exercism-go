@@ -1,18 +1,24 @@
 package forth
 
 import (
-	"container/list"
 	"errors"
+	"regexp"
 	"strconv"
 	"strings"
 )
 
 var (
-	errDivisionByZero  = errors.New("Cannot divide by zero")
-	errNoElem          = errors.New("No element on stack")
-	errCommandNotFound = errors.New("Command not found")
-	errOverride        = errors.New("Cannot override numbers")
+	ErrDivisionByZero  = errors.New("Cannot divide by zero")
+	ErrNoElem          = errors.New("No element on stack")
+	ErrCommandNotFound = errors.New("Command not found")
+	ErrOverride        = errors.New("Cannot override numbers")
 )
+
+var numRegexp = regexp.MustCompile(`^\d$`)
+
+func isNum(str string) bool {
+	return numRegexp.MatchString(str)
+}
 
 func Forth(input []string) ([]int, error) {
 	s := NewStack()
@@ -21,7 +27,7 @@ func Forth(input []string) ([]int, error) {
 
 	for _, str := range input {
 		normalizedStr := strings.ToLower(str)
-		tokens := strings.Split(normalizedStr, " ")
+		tokens := strings.Fields(normalizedStr)
 
 		if tokens[0] == ":" {
 			err = s.defineWord(tokens)
@@ -38,42 +44,35 @@ func Forth(input []string) ([]int, error) {
 }
 
 type Stack struct {
-	*list.List
+	list        []int
 	customWords map[string][]string
 }
 
 func NewStack() *Stack {
 	s := Stack{
-		List:        list.New(),
+		list:        []int{},
 		customWords: map[string][]string{},
 	}
 	return &s
 }
 
-func (s *Stack) Push(v int) *list.Element {
-	return s.PushFront(v)
+func (s *Stack) Push(v int) int {
+	s.list = append(s.list, v)
+	return v
 }
 
-func (s *Stack) Pop() (*list.Element, error) {
-	elem := s.Front()
-	if elem != nil {
-		s.Remove(elem)
+func (s *Stack) Pop() (int, error) {
+	var elem int
+	if len(s.list) != 0 {
+		elem, s.list = s.list[len(s.list)-1], s.list[:len(s.list)-1]
 		return elem, nil
 	} else {
-		return nil, errNoElem
+		return 0, ErrNoElem
 	}
 }
 
 func (s *Stack) getValues() []int {
-	values := make([]int, s.List.Len())
-	i := s.List.Len() - 1
-	elem := s.Front()
-	for elem != nil {
-		values[i] = elem.Value.(int)
-		elem = elem.Next()
-		i--
-	}
-	return values
+	return s.list
 }
 
 // evaluateTokens pushes commands onto the stack
@@ -81,9 +80,9 @@ func (s *Stack) getValues() []int {
 func (s *Stack) evaluateTokens(tokens []string) error {
 	for _, token := range tokens {
 		// push numbers onto the stack
-		num, err := strconv.ParseInt(token, 10, 64)
+		num, err := strconv.Atoi(token)
 		if err == nil {
-			s.Push(int(num))
+			s.Push(num)
 			continue
 		}
 
@@ -115,9 +114,8 @@ func (s *Stack) defineWord(definition []string) error {
 	cmds := make([]string, len(definition))
 
 	// numbers not allowed
-	_, err := strconv.ParseInt(customWord, 10, 64)
-	if err == nil {
-		return errOverride
+	if isNum(customWord) {
+		return ErrOverride
 	}
 
 	for i, token := range definition {
@@ -143,7 +141,7 @@ func (s *Stack) runCommand(cmd string) error {
 	if err != nil {
 		return err
 	}
-	v1 := elem1.Value.(int)
+	v1 := elem1
 
 	switch cmd {
 	case "drop": // does nothing
@@ -155,7 +153,7 @@ func (s *Stack) runCommand(cmd string) error {
 		if err != nil {
 			return err
 		}
-		v2 := elem2.Value.(int)
+		v2 := elem2
 
 		switch cmd {
 		case "+":
@@ -166,7 +164,7 @@ func (s *Stack) runCommand(cmd string) error {
 			s.Push(v1 * v2)
 		case "/":
 			if v1 == 0 {
-				return errDivisionByZero
+				return ErrDivisionByZero
 			}
 			s.Push(v2 / v1)
 		case "swap":
@@ -177,7 +175,7 @@ func (s *Stack) runCommand(cmd string) error {
 			s.Push(v1)
 			s.Push(v2)
 		default:
-			return errCommandNotFound
+			return ErrCommandNotFound
 		}
 	}
 
