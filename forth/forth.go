@@ -133,22 +133,20 @@ func (s *Stack) defineWord(definition []string) error {
 // runCommands runs predefined commands which may
 // not be overridden
 func (s *Stack) runCommand(cmd string) error {
-	elem1, err := s.Pop() // this also handles "drop"
+	v1, err := s.Pop() // this also handles "drop"
 	if err != nil {
 		return err
 	}
-	v1 := elem1
 
 	switch cmd {
 	case "drop": // does nothing
 	case "dup":
 		s.Push(v1, v1)
 	default: // cmds which need 2 params
-		elem2, err := s.Pop()
+		v2, err := s.Pop()
 		if err != nil {
 			return err
 		}
-		v2 := elem2
 
 		switch cmd {
 		case "+":
