@@ -16,56 +16,94 @@ var countDiscount = map[int]float64{
 }
 
 func Cost(basket []int) int {
-	sort.Ints(basket)
+	basket = orderByMode(basket)
 
 	l := len(basket)
-	numUnique := countUnique(basket)
 	discount := countDiscount[1]
 
 	if allUnique(basket) {
-		discount = countDiscount[numUnique]
-	}
+		discount = countDiscount[l]
+	} else if l >= 5 {
+		for i := 3; i < 6; i++ {
+			groupedByI := groupUnique(basket, i)
 
-	if l >= 5 {
-		lenFloat := float64(l)
+			tmpDiscount := 0.0
+			for _, group := range groupedByI {
+				lenGroup := len(group)
+				tmpDiscount += countDiscount[lenGroup] * float64(lenGroup) / float64(l)
+			}
 
-		// 4-based discount greedy (4 + remainder)
-		if numUnique >= 4 {
-			num4discounts := float64(l / 4)
-			remainder := float64(l % 4)
-
-			disc4 := countDiscount[4] * (4.0 * num4discounts / lenFloat)
-			remainderDisc := countDiscount[int(remainder)] * (remainder / lenFloat)
-			discount = disc4 + remainderDisc
-
-		}
-
-		if numUnique == 5 { // 5-based discount greedy (5 + remainder)
-			num5discounts := float64(l / 5)
-			remainder := float64(l % 5)
-
-			disc5 := countDiscount[5] * (5.0 * num5discounts / lenFloat)
-			remainderDisc := countDiscount[int(remainder)] * (remainder / lenFloat)
-			discount5 := disc5 + remainderDisc
-
-			if discount5 < discount {
-				discount = discount5
+			if tmpDiscount < discount {
+				discount = tmpDiscount
 			}
 		}
-
 	}
 
 	return int(math.Round((discount*float64(l)*float64(bookCost))*100) / 100)
 }
 
 func allUnique(basket []int) bool {
-	return countUnique(basket) == len(basket)
+	for i := 1; i < len(basket); i++ {
+		if basket[i] == basket[i-1] {
+			return false
+		}
+	}
+	return true
 }
 
-func countUnique(basket []int) int {
-	seen := map[int]bool{}
-	for i := 0; i < len(basket); i++ {
-		seen[basket[i]] = true
+func countUnique(groupedBooks [][]int) int {
+	return len(groupedBooks[0])
+}
+
+func orderByMode(basket []int) []int {
+	counts := [][]int{
+		{}, {}, {}, {}, {},
 	}
-	return len(seen)
+	for _, elem := range basket {
+		counts[elem-1] = append(counts[elem-1], elem)
+	}
+	sort.SliceStable(counts, func(i, j int) bool {
+		return len(counts[j]) < len(counts[i])
+	})
+	orderedBasket := []int{}
+	for i := 0; i < 5; i++ {
+		for _, elem := range counts[i] {
+			orderedBasket = append(orderedBasket, elem)
+		}
+	}
+	return orderedBasket
+}
+
+func groupUnique(basket []int, targetCount int) [][]int {
+	lastNum := -1
+	groupIndex := 0
+
+	groups := [][]int{
+		{},
+	}
+
+	baseGroupIndex := 0
+	for i := 0; i < len(basket); i++ {
+		groupIndex = baseGroupIndex
+
+		if basket[i] == lastNum {
+			groupIndex++
+			if groupIndex == len(groups) {
+				groups = append(groups, []int{})
+			}
+		}
+
+		groups[groupIndex] = append(groups[groupIndex], basket[i])
+		lastNum = basket[i]
+
+		if len(groups[groupIndex])%targetCount == 0 && i != len(basket)-1 {
+			baseGroupIndex++
+			if len(groups) == baseGroupIndex {
+				groups = append(groups, []int{})
+			}
+			lastNum = -1
+		}
+
+	}
+	return groups
 }
