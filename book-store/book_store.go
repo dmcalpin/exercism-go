@@ -9,7 +9,7 @@ import (
 // in cents
 const bookCost = 800
 
-// cost of the books based on
+// discount of the books based on
 // number of unique books in
 // the group
 var countDiscount = map[int]float64{
@@ -28,15 +28,15 @@ func Cost(basket []int) int {
 	// easier/possible
 	sort.Ints(basket)
 
-	l := len(basket)
-	discount := countDiscount[1]
+	basketCount := len(basket)
+	discount := countDiscount[1] // 1.0
 
 	// this first check is an optimization
 	// since only baskets with 5 or less
 	// items can all be unique, we can do
 	// a much simpler check first
-	if l < 6 && allUnique(basket) {
-		discount = countDiscount[l]
+	if basketCount < 6 && allUnique(basket) {
+		discount = countDiscount[basketCount]
 	} else {
 		// If we ever come up with other
 		// strategies to try, add them
@@ -58,9 +58,10 @@ func Cost(basket []int) int {
 				// Example: for groups, 1,2,3,4 and 1,2
 				// the discount would be 20% off all the books
 				// in group 1 and 5% off all the books in group
-				// 2. Not 12.5% off the total (20 + 5 / 2)
+				// 2 resulting in a discount of 15%. Not
+				// 12.5% off the total (20 + 5 / 2)
 				tmpDiscount += countDiscount[len(group)] *
-					float64(len(group)) / float64(l)
+					float64(len(group)) / float64(basketCount)
 			}
 
 			// if we have a better discount,
@@ -71,11 +72,9 @@ func Cost(basket []int) int {
 		}
 	}
 
-	// floating point arithmetic is
-	// imprecise, so we round the cost
-	// after discount
-	return int(math.Round(
-		(discount*float64(l)*float64(bookCost))*100) / 100)
+	baseBookCost := float64(basketCount * bookCost)
+	discountedBookCost := int(discount * baseBookCost)
+	return discountedBookCost
 }
 
 // for baskets len 5 or less we can
@@ -89,6 +88,7 @@ func allUnique(basket []int) bool {
 	return true
 }
 
+// keeps track of books seen
 type grouping map[int]bool
 
 // This strategy tries to fill up one group
@@ -103,10 +103,9 @@ func deepGrouping(basket []int) []grouping {
 		// try to push to any group
 		// starting with the first
 		for _, g := range groups {
-			// if it doesn't exist
-			// in the group add it
-			// and move on to the
-			// next number
+			// if it doesn't exist in the
+			// group add it and move on to
+			// the next number
 			if !g[v] {
 				g[v] = true
 				added = true
