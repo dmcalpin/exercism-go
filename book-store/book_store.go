@@ -5,8 +5,13 @@ import (
 	"sort"
 )
 
+// The cost of single book
+// in cents
 const bookCost = 800
 
+// cost of the books based on
+// number of unique books in
+// the group
 var countDiscount = map[int]float64{
 	1: 1.0,
 	2: 0.95,
@@ -15,38 +20,66 @@ var countDiscount = map[int]float64{
 	5: 0.75,
 }
 
+// Cost calculates the best possible
+// discount for a given basket of
+// books
 func Cost(basket []int) int {
-	basket = orderByMode(basket)
+	// this makes grouping
+	// easier/possible
+	sort.Ints(basket)
 
 	l := len(basket)
 	discount := countDiscount[1]
 
-	if allUnique(basket) {
+	// this first check is an optimization
+	// since only baskets with 5 or less
+	// items can all be unique, we can do
+	// a much simpler check first
+	if l < 6 && allUnique(basket) {
 		discount = countDiscount[l]
-	} else if l >= 5 {
-		var groups []grouping
-		for i := 0; i < 2; i++ {
-			if i == 0 {
-				groups = broadGrouping(basket)
-			} else {
-				groups = deepGrouping(basket)
-			}
+	} else {
+		// If we ever come up with other
+		// strategies to try, add them
+		// here
+		discountGroups := [][]grouping{
+			broadGrouping(basket),
+			deepGrouping(basket),
+		}
 
+		// try all the strategies to see which
+		// gives the largest discount
+		for _, groups := range discountGroups {
 			tmpDiscount := 0.0
 			for _, group := range groups {
-				lenGroup := len(group)
-				tmpDiscount += countDiscount[lenGroup] * float64(lenGroup) / float64(l)
+				// calculate the discount per group of books.
+				// Note the discount is per book, not per group
+				// so we have to multiple the dicount times
+				// the number of books in the group.
+				// Example: for groups, 1,2,3,4 and 1,2
+				// the discount would be 20% off all the books
+				// in group 1 and 5% off all the books in group
+				// 2. Not 12.5% off the total (20 + 5 / 2)
+				tmpDiscount += countDiscount[len(group)] *
+					float64(len(group)) / float64(l)
 			}
 
+			// if we have a better discount,
+			// use it
 			if tmpDiscount < discount {
 				discount = tmpDiscount
 			}
 		}
 	}
 
-	return int(math.Round((discount*float64(l)*float64(bookCost))*100) / 100)
+	// floating point arithmetic is
+	// imprecise, so we round the cost
+	// after discount
+	return int(math.Round(
+		(discount*float64(l)*float64(bookCost))*100) / 100)
 }
 
+// for baskets len 5 or less we can
+// do a quick check for uniqueness
 func allUnique(basket []int) bool {
 	for i := 1; i < len(basket); i++ {
 		if basket[i] == basket[i-1] {
@@ -56,37 +89,24 @@ func allUnique(basket []int) bool {
 	return true
 }
 
-func countUnique(groupedBooks [][]int) int {
-	return len(groupedBooks[0])
-}
-
-func orderByMode(basket []int) []int {
-	counts := [][]int{
-		{}, {}, {}, {}, {},
-	}
-	for _, elem := range basket {
-		counts[elem-1] = append(counts[elem-1], elem)
-	}
-	sort.SliceStable(counts, func(i, j int) bool {
-		return len(counts[j]) < len(counts[i])
-	})
-	orderedBasket := []int{}
-	for i := 0; i < 5; i++ {
-		for _, elem := range counts[i] {
-			orderedBasket = append(orderedBasket, elem)
-		}
-	}
-	return orderedBasket
-}
-
 type grouping map[int]bool
 
+// This strategy tries to fill up one group
+// before starting a new group.
+// Example: 1,1,2,2,3,4,5 would result in
+// 1,2,3,4,5 and 1,2
 func deepGrouping(basket []int) []grouping {
 	groups := []grouping{}
 
 	for _, v := range basket {
 		added := false
+		// try to push to any group
+		// starting with the first
 		for _, g := range groups {
+			// if it doesn't exist
+			// in the group add it
+			// and move on to the
+			// next number
 			if !g[v] {
 				g[v] = true
 				added = true
@@ -94,6 +114,9 @@ func deepGrouping(basket []int) []grouping {
 			}
 		}
 
+		// if all groups had this num
+		// create a new group and add
+		// it
 		if !added {
 			groups = append(groups, grouping{
 				v: true,
@@ -104,16 +127,37 @@ func deepGrouping(basket []int) []grouping {
 	return groups
 }
 
+// This strategy tries to group the books
+// evenly.
+// Example: 1,1,2,2,3,4,5 would result in
+// 1, 2, 3, 5 and 1, 2, 4
 func broadGrouping(basket []int) []grouping {
 	groups := []grouping{}
+	// Guestimate number of groups based
+	// on the square root of the basket length
 	numGroups := int(math.Floor(math.Sqrt((float64(len(basket))))))
 
-	for i := 0; i < numGroups; i++ {
-		groups = append(groups, grouping{})
-	}
-
 	for i, v := range basket {
+		// this is the target group
+		// we wnt to push to
 		groupIndex := i % numGroups
+
+		// make a grouping it exists
+		if groupIndex > len(groups)-1 {
+			groups = append(groups, grouping{})
+		}
+
+		// if value already exists in a group
+		// create a new group and increase
+		// This will likely occur if we have
+		// length of basket < 8
+		if groups[groupIndex][v] {
+			groups = append(groups, grouping{})
+			numGroups++
+			groupIndex++
+		}
+
+		// mark as exists
 		groups[groupIndex][v] = true
 	}
 	return groups

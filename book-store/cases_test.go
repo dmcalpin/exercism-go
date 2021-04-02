@@ -40,6 +40,16 @@ var testCases = []struct {
 		expected:    2560,
 	},
 	{
+		description: "Two of the first and second book",
+		basket:      []int{1, 2, 1, 2},
+		expected:    3040,
+	},
+	{
+		description: "Two of the first two, plus the third",
+		basket:      []int{1, 2, 1, 2, 3},
+		expected:    3680,
+	},
+	{
 		description: "Five different books",
 		basket:      []int{1, 2, 3, 4, 5},
 		expected:    3000,
