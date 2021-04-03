@@ -2,9 +2,10 @@ package grep
 
 import (
 	"bufio"
-	"fmt"
+	"log"
 	"os"
 	"regexp"
+	"strconv"
 )
 
 func Search(pattern string, flags []string, files []string) []string {
@@ -14,16 +15,20 @@ func Search(pattern string, flags []string, files []string) []string {
 	flagFileName := false
 	flagInverse := false
 	for _, flag := range flags {
-		if flag == "-n" {
+		switch flag {
+		case "-n":
 			flagLineNo = true
-		} else if flag == "-i" { // case incensitive
+		case "-i": // case insensitive
 			pattern = "(?i)" + pattern
-		} else if flag == "-l" {
+		case "-l":
 			flagFileName = true
-		} else if flag == "-x" { // match entire line
+		case "-x": // match entire line
 			pattern = "^" + pattern + "$"
-		} else if flag == "-v" {
+		case "-v":
 			flagInverse = true
+		default:
+			log.Fatal("Error: Unknown flag", flag)
+			return nil
 		}
 	}
 
@@ -33,36 +38,44 @@ func Search(pattern string, flags []string, files []string) []string {
 	for _, fileName := range files {
 		file, err := os.Open(fileName)
 		if err != nil {
-			return []string{}
+			log.Fatal(err)
 		}
 		defer file.Close()
 
 		scanner := bufio.NewScanner(file)
 		line := 1
+		lastText := ""
 		for scanner.Scan() {
 			text := scanner.Text()
 			isMatch := re.MatchString(text)
-			if (!flagInverse && isMatch) || (flagInverse && !isMatch) {
-				if flagFileName {
-					// only add the file name once
-					if len(matches) > 0 && fileName == matches[len(matches)-1] {
-						continue
-					}
-					text = fileName
-				} else {
-					if flagLineNo {
-						text = fmt.Sprintf("%d:%s", line, text)
-					}
-					if numFiles > 1 {
-						text = fmt.Sprintf("%s:%s", fileName, text)
-					}
-				}
 
-				matches = append(matches, text)
+			// flagInverse causes isMatch to do
+			// do the opposite.
+			if flagInverse == isMatch {
+				line++
+				continue
 			}
+
+			if flagFileName {
+				// only add the file name once
+				if fileName == lastText {
+					continue
+				}
+				text = fileName
+			} else {
+				if flagLineNo {
+					text = strconv.Itoa(line) + ":" + text
+				}
+				if numFiles > 1 {
+					text = fileName + ":" + text
+				}
+			}
+
+			lastText = text
+			matches = append(matches, text)
+
 			line++
 		}
-
 	}
 
 	return matches
