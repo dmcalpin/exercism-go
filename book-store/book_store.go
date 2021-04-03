@@ -6,33 +6,31 @@ const bookCost = 800
 
 // discount of the books based on
 // number of unique books in
-// the group
-var countDiscount = map[int]float64{
-	1: 1.0,
-	2: 0.95,
-	3: 0.9,
-	4: 0.8,
-	5: 0.75,
+// the group. The index matches
+// the book number in the basket
+var countDiscount = []float64{
+	0.0, // to bump the indices up
+	1.0,
+	0.95,
+	0.9,
+	0.8,
+	0.75,
 }
 
 // Cost calculates the best possible
 // discount for a given basket of
 // books
 func Cost(basket []int) int {
-	basketCount := len(basket)
-	if basketCount == 0 {
+	n := len(basket)
+	if n == 0 {
 		return 0
 	}
 
 	// count each type of book
 	// {1, 1, 2, 2, 3} => {2, 2, 1}
-	bookCounts := make([]int, 5)
+	bookCounts := [5]int{}
 	largestGroup := 0
 	for _, v := range basket {
-		if len(bookCounts) == v-1 {
-			bookCounts = append(bookCounts, 0)
-		}
-
 		bookCounts[v-1]++
 
 		if bookCounts[v-1] > bookCounts[largestGroup] {
@@ -41,7 +39,7 @@ func Cost(basket []int) int {
 	}
 
 	// Count books per unique set
-	// 1,1,2,2,3 => 3, 2 meaning
+	// {2, 2, 1} => {3, 2} meaning
 	// the first set has 3 books,
 	// and the second set has 2
 	max := bookCounts[largestGroup]
@@ -58,12 +56,12 @@ func Cost(basket []int) int {
 	// or try an alternet discount using a grouping of 4
 	discount := 0.0
 	altDiscount := 0.0
-	for _, d := range bookSets {
-		numBooks := float64(d)
-		discount += countDiscount[d] * float64(numBooks)
+	for _, s := range bookSets {
+		numBooks := float64(s)
+		discount += countDiscount[s] * float64(numBooks)
 
 		// covers 5 & 3 vs 4 & 4 comparison
-		if bookSets[0] >= 4 && basketCount%4 == 0 {
+		if bookSets[0] >= 4 && n%4 == 0 {
 			altDiscount += countDiscount[4] * float64(numBooks)
 		}
 	}
@@ -73,8 +71,8 @@ func Cost(basket []int) int {
 	}
 
 	// cost befor discount applied
-	baseBasketCost := bookCost * basketCount
+	baseBasketCost := bookCost * n
 
 	// return discounted basket
-	return int(discount * float64(baseBasketCost) / float64(basketCount))
+	return int(discount * float64(baseBasketCost) / float64(n))
 }
