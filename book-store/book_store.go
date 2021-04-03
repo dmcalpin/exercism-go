@@ -20,43 +20,51 @@ var countDiscount = map[int]float64{
 // books
 func Cost(basket []int) int {
 	basketCount := len(basket)
-	baseBasketCost := bookCost * basketCount
-
-	discount := 0.0
-	altDiscount := 0.0
+	if basketCount == 0 {
+		return 0
+	}
 
 	// count each type of book
-	bookCounts := make(map[int]int, 5)
+	// {1, 1, 2, 2, 3} => {2, 2, 1}
+	bookCounts := make([]int, 5)
 	largestGroup := 0
 	for _, v := range basket {
-		bookCounts[v]++
-		if bookCounts[v] > bookCounts[largestGroup] {
-			largestGroup = v
+		if len(bookCounts) == v-1 {
+			bookCounts = append(bookCounts, 0)
+		}
+
+		bookCounts[v-1]++
+
+		if bookCounts[v-1] > bookCounts[largestGroup] {
+			largestGroup = v - 1
 		}
 	}
 
-	// create slices of unique books
-	// 1,1,2,2,3 => 1,2,3 and 1,2
+	// Count books per unique set
+	// 1,1,2,2,3 => 3, 2 meaning
+	// the first set has 3 books,
+	// and the second set has 2
 	max := bookCounts[largestGroup]
 	bookSets := make([]int, max)
-	for i, _ := range bookSets {
-		for k, _ := range bookCounts {
-			if bookCounts[k] > 0 {
+	for i := range bookSets {
+		for k := range bookCounts {
+			if bookCounts[k] > i {
 				bookSets[i]++
-				bookCounts[k]--
 			}
 		}
 	}
 
 	// apply a discount either by num of books per set
 	// or try an alternet discount using a grouping of 4
+	discount := 0.0
+	altDiscount := 0.0
 	for _, d := range bookSets {
-		discountPart := float64(d) / float64(basketCount)
-		discount += countDiscount[d] * discountPart
+		numBooks := float64(d)
+		discount += countDiscount[d] * float64(numBooks)
 
 		// covers 5 & 3 vs 4 & 4 comparison
 		if bookSets[0] >= 4 && basketCount%4 == 0 {
-			altDiscount += countDiscount[4] * discountPart
+			altDiscount += countDiscount[4] * float64(numBooks)
 		}
 	}
 
@@ -64,5 +72,9 @@ func Cost(basket []int) int {
 		discount = altDiscount
 	}
 
-	return int(discount * float64(baseBasketCost))
+	// cost befor discount applied
+	baseBasketCost := bookCost * basketCount
+
+	// return discounted basket
+	return int(discount * float64(baseBasketCost) / float64(basketCount))
 }
