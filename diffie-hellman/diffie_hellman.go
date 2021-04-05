@@ -12,18 +12,14 @@ var (
 	// the passed-in big.Int is not
 	// modified
 	big0 = big.NewInt(0)
-	// declaring big2 and big3 here
-	// since they never change, small
-	// perf improvement
 	big2 = big.NewInt(2)
-	big3 = big.NewInt(3)
 )
 
 func PrivateKey(p *big.Int) *big.Int {
 	// Creates a key > 1 && < p
 	// 3 is subtracted because  the min is 2, and the
 	// max is p - 1, so 3 in total
-	a, err := rand.Int(rand.Reader, big0.Sub(p, big3))
+	a, err := rand.Int(rand.Reader, big0.Sub(p, big2))
 	if err != nil {
 		log.Fatal(err)
 	}
