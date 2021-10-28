@@ -24,6 +24,7 @@ type Grep struct {
 	CurrLine            int
 	lastText            string
 	matchString         func(string) bool
+	getTextToReturn     func(string) string
 }
 
 func Search(pattern string, flags []string, files []string) []string {
@@ -82,51 +83,65 @@ func NewGrepper(
 		}
 	}
 
+	if config.FlagFileName {
+		config.getTextToReturn = config.getFilename
+	} else {
+		config.getTextToReturn = config.decorateText
+	}
+
 	return config, nil
 }
 
 func (config *Grep) ScanFile(filename string) {
-	config.Filename = filename
-	fileBytes, err := os.ReadFile(config.Filename)
+	config.CurrLine = 1
+	config.lastText = ""
+
+	lines, err := config.readFileLines(filename)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	lines := strings.Split(string(fileBytes), "\n")
-	config.CurrLine = 1
-	config.lastText = ""
 	for _, text := range lines {
-		if text == "" {
-			continue
-		}
-
 		isMatch := config.matchString(text)
 
-		// flagInverse causes isMatch to do
-		// do the opposite.
 		if config.FlagInverse == isMatch {
 			config.CurrLine++
 			continue
 		}
 
-		text = config.decorateText(text)
+		text = config.getTextToReturn(text)
 		if text != "" {
 			config.lastText = text
 			config.Matches = append(config.Matches, text)
-
-			config.CurrLine++
 		}
+		config.CurrLine++
 	}
 }
 
-func (g *Grep) decorateText(text string) string {
-	if g.FlagFileName {
-		// only add the file name once
-		if g.Filename != g.lastText {
-			return g.Filename
-		}
-		return ""
+func (g *Grep) readFileLines(filename string) ([]string, error) {
+	g.Filename = filename
+	fileBytes, err := os.ReadFile(g.Filename)
+	if err != nil {
+		return nil, err
 	}
+
+	lines := strings.Split(string(fileBytes), "\n")
+	if lines[len(lines)-1] == "" {
+		lines = lines[0 : len(lines)-1]
+	}
+
+	return lines, nil
+}
+
+func (g *Grep) getFilename(_ string) string {
+	// only add the file name once
+	if g.Filename != g.lastText {
+		return g.Filename
+	}
+	return ""
+}
+
+func (g *Grep) decorateText(text string) string {
 	if g.FlagLineNo {
 		text = strconv.Itoa(g.CurrLine) + ":" + text
 	}
