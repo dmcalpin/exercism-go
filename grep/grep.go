@@ -1,7 +1,6 @@
 package grep
 
 import (
-	"bufio"
 	"errors"
 	"log"
 	"os"
@@ -88,17 +87,18 @@ func NewGrepper(
 
 func (config *Grep) ScanFile(filename string) {
 	config.Filename = filename
-	file, err := os.Open(config.Filename)
+	fileBytes, err := os.ReadFile(config.Filename)
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer file.Close()
 
-	scanner := bufio.NewScanner(file)
+	lines := strings.Split(string(fileBytes), "\n")
 	config.CurrLine = 1
 	config.lastText = ""
-	for scanner.Scan() {
-		text := scanner.Text()
+	for _, text := range lines {
+		if text == "" {
+			continue
+		}
 
 		isMatch := config.matchString(text)
 
@@ -110,14 +110,12 @@ func (config *Grep) ScanFile(filename string) {
 		}
 
 		text = config.decorateText(text)
-		if text == "" {
-			continue
+		if text != "" {
+			config.lastText = text
+			config.Matches = append(config.Matches, text)
+
+			config.CurrLine++
 		}
-
-		config.lastText = text
-		config.Matches = append(config.Matches, text)
-
-		config.CurrLine++
 	}
 }
 
@@ -125,8 +123,7 @@ func (g *Grep) decorateText(text string) string {
 	if g.FlagFileName {
 		// only add the file name once
 		if g.Filename != g.lastText {
-			text = g.Filename
-			return text
+			return g.Filename
 		}
 		return ""
 	}
